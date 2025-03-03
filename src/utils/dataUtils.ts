@@ -1,24 +1,34 @@
 
 // Utility functions for data processing and analysis
+import { fetchTwitterSentiment, TwitterSentiment } from '../services/twitterService';
+import { fetchEconomicIndicators, EconomicIndicator } from '../services/fredService';
+
+// Cache for API responses
+let sentimentCache: TwitterSentiment[] | null = null;
+let economicCache: EconomicIndicator[] | null = null;
 
 // Simulated sentiment analysis scores from social media
-export const getSentimentData = () => {
-  return [
-    { platform: 'Twitter', sentiment: -0.35, volume: 45000, change: -0.12 },
-    { platform: 'Reddit', sentiment: -0.22, volume: 28000, change: -0.05 },
-    { platform: 'News Media', sentiment: -0.18, volume: 12000, change: 0.03 },
-    { platform: 'Facebook', sentiment: -0.28, volume: 36000, change: -0.08 },
-  ];
+export const getSentimentData = async () => {
+  if (!sentimentCache) {
+    const twitterData = await fetchTwitterSentiment();
+    
+    // Combine Twitter data with other platforms
+    sentimentCache = [
+      ...twitterData,
+      { platform: 'Reddit', sentiment: -0.22, volume: 28000, change: -0.05 },
+      { platform: 'News Media', sentiment: -0.18, volume: 12000, change: 0.03 },
+      { platform: 'Facebook', sentiment: -0.28, volume: 36000, change: -0.08 },
+    ];
+  }
+  return sentimentCache;
 };
 
-// Mock economic indicators data
-export const getEconomicIndicators = () => {
-  return [
-    { indicator: 'Unemployment', value: 7.8, change: 0.8, threshold: 6.5, status: 'high' },
-    { indicator: 'Inflation', value: 5.2, change: 1.2, threshold: 4.0, status: 'high' },
-    { indicator: 'Consumer Confidence', value: 68.3, change: -12.5, threshold: 75.0, status: 'medium' },
-    { indicator: 'GDP Growth', value: 1.2, change: -0.7, threshold: 2.0, status: 'medium' },
-  ];
+// Economic indicators data from FRED API
+export const getEconomicIndicators = async () => {
+  if (!economicCache) {
+    economicCache = await fetchEconomicIndicators();
+  }
+  return economicCache;
 };
 
 // Generate trend data for crisis indicators

@@ -1,11 +1,43 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingUp, Info } from 'lucide-react';
 import { getTrendData, detectAnomalies } from '../utils/dataUtils';
 
 export const AnomalyDetection: React.FC = () => {
-  const trendData = getTrendData(30);
-  const anomalies = detectAnomalies(trendData);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [anomalies, setAnomalies] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    // Load trend data and detect anomalies
+    const data = getTrendData(30);
+    setTrendData(data);
+    setAnomalies(detectAnomalies(data));
+    setIsLoading(false);
+  }, []);
+  
+  if (isLoading) {
+    return (
+      <div className="crisis-card p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={20} className="text-crisis-high" />
+            <h3 className="text-lg font-medium">Anomaly Detection</h3>
+          </div>
+          <div className="animate-pulse h-4 w-24 bg-secondary rounded"></div>
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse space-y-2 border-l-4 border-l-crisis-medium border-border/60 p-3">
+              <div className="h-4 bg-secondary rounded w-full"></div>
+              <div className="h-3 bg-secondary rounded w-3/4"></div>
+              <div className="h-3 bg-secondary rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="crisis-card p-4">

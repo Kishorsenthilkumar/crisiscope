@@ -1,9 +1,26 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingCart, BarChart, Users } from 'lucide-react';
 import { getEconomicIndicators } from '../utils/dataUtils';
 
 export const EconomicIndicators: React.FC = () => {
-  const indicators = getEconomicIndicators();
+  const [indicators, setIndicators] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getEconomicIndicators();
+        setIndicators(data);
+      } catch (error) {
+        console.error('Error fetching economic indicators:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   const getIndicatorIcon = (indicator: string) => {
     switch (indicator.toLowerCase()) {
@@ -38,6 +55,26 @@ export const EconomicIndicators: React.FC = () => {
     return change < 0 ? 'text-crisis-high' : 'text-crisis-low';
   };
   
+  if (isLoading) {
+    return (
+      <div className="crisis-card p-4">
+        <div className="text-lg font-medium mb-4">Economic Indicators</div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="animate-pulse space-y-2">
+              <div className="h-4 bg-secondary rounded w-full"></div>
+              <div className="h-2 bg-secondary rounded w-full"></div>
+              <div className="flex justify-between">
+                <div className="h-3 bg-secondary rounded w-1/4"></div>
+                <div className="h-3 bg-secondary rounded w-1/4"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="crisis-card p-4">
       <div className="text-lg font-medium mb-4">Economic Indicators</div>
@@ -68,7 +105,7 @@ export const EconomicIndicators: React.FC = () => {
         ))}
       </div>
       <div className="mt-4 pt-3 border-t border-border text-sm text-muted-foreground">
-        <div>Data sources: Central Bank, Labor Bureau, Market Indices</div>
+        <div>Data sources: FRED API, Central Bank, Labor Bureau</div>
       </div>
     </div>
   );
