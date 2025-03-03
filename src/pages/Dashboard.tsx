@@ -3,6 +3,11 @@ import React from 'react';
 import { CrisisMap } from '../components/CrisisMap';
 import { CrisisCard } from '../components/CrisisCard';
 import { AlertPanel } from '../components/AlertPanel';
+import { SentimentAnalysis } from '../components/SentimentAnalysis';
+import { TrendChart } from '../components/TrendChart';
+import { EconomicIndicators } from '../components/EconomicIndicators';
+import { AIPredictions } from '../components/AIPredictions';
+import { AnomalyDetection } from '../components/AnomalyDetection';
 import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -46,6 +51,18 @@ const Dashboard: React.FC = () => {
         <div className="col-span-1">
           <AlertPanel />
         </div>
+      </div>
+      
+      {/* New AI & Data Analysis Section */}
+      <div className="grid grid-cols-2 gap-6">
+        <TrendChart />
+        <SentimentAnalysis />
+      </div>
+      
+      <div className="grid grid-cols-3 gap-6">
+        <EconomicIndicators />
+        <AIPredictions />
+        <AnomalyDetection />
       </div>
       
       <div className="grid grid-cols-2 gap-6">

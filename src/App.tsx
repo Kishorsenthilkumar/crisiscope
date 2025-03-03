@@ -34,6 +34,40 @@ const App = () => (
               </div>
             }
           />
+          <Route
+            path="/reports"
+            element={
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-y-auto">
+                    <div className="p-6">
+                      <h1 className="text-2xl font-bold mb-4">Reports & Data Export</h1>
+                      <p className="text-muted-foreground">This page is under development.</p>
+                    </div>
+                  </main>
+                </div>
+              </div>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-y-auto">
+                    <div className="p-6">
+                      <h1 className="text-2xl font-bold mb-4">User Settings & Customization</h1>
+                      <p className="text-muted-foreground">This page is under development.</p>
+                    </div>
+                  </main>
+                </div>
+              </div>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
