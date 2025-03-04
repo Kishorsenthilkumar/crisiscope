@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
+import IndiaMap from "./pages/IndiaMap";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,20 @@ const App = () => (
                   <Header />
                   <main className="flex-1 overflow-y-auto">
                     <Dashboard />
+                  </main>
+                </div>
+              </div>
+            }
+          />
+          <Route
+            path="/india-map"
+            element={
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-y-auto">
+                    <IndiaMap />
                   </main>
                 </div>
               </div>

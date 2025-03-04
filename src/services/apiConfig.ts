@@ -15,14 +15,22 @@ export const fredConfig = {
   baseUrl: 'https://api.stlouisfed.org/fred',
 };
 
+// India Economic Data API configuration (for future implementation)
+export const indiaDataConfig = {
+  apiKey: '',
+  baseUrl: 'https://api.example.com/india-economic-data',
+};
+
 // Check if API keys are configured
 export const isTwitterConfigured = () => Boolean(twitterConfig.bearerToken);
 export const isFredConfigured = () => Boolean(fredConfig.apiKey);
+export const isIndiaDataConfigured = () => Boolean(indiaDataConfig.apiKey);
 
 // Helper function to set API keys at runtime
 export const setAPIKeys = (keys: { 
   twitterBearerToken?: string; 
   fredApiKey?: string;
+  indiaDataApiKey?: string;
 }) => {
   if (keys.twitterBearerToken) {
     // @ts-ignore - Allow runtime setting of environment variable
@@ -32,5 +40,10 @@ export const setAPIKeys = (keys: {
   if (keys.fredApiKey) {
     // @ts-ignore - Allow runtime setting of environment variable
     fredConfig.apiKey = keys.fredApiKey;
+  }
+  
+  if (keys.indiaDataApiKey) {
+    // @ts-ignore - Allow runtime setting of environment variable
+    indiaDataConfig.apiKey = keys.indiaDataApiKey;
   }
 };
