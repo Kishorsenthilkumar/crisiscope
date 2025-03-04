@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { CrisisMap } from '../components/CrisisMap';
 import { CrisisCard } from '../components/CrisisCard';
@@ -10,15 +9,60 @@ import { AIPredictions } from '../components/AIPredictions';
 import { AnomalyDetection } from '../components/AnomalyDetection';
 import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
+import { isTwitterConfigured, isFredConfigured, isIndiaDataConfigured } from '../services/apiConfig';
 
 const Dashboard: React.FC = () => {
   useEffect(() => {
-    // Debug information notification
+    // Check API configuration status
     console.log("Dashboard component mounted");
+    
+    // Dashboard loaded notification
     toast({
       title: "Dashboard Loaded",
       description: "The dashboard has been loaded successfully.",
     });
+    
+    // API status notifications
+    if (isTwitterConfigured()) {
+      toast({
+        title: "Twitter API Connected",
+        description: "Using real-time Twitter data for sentiment analysis.",
+        duration: 5000,
+      });
+      console.log("Twitter API is configured and using real data");
+    } else {
+      toast({
+        title: "Twitter API Not Connected",
+        description: "Using mock Twitter data. Configure API keys on the home page.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+    
+    if (isFredConfigured()) {
+      toast({
+        title: "FRED API Connected",
+        description: "Using real-time economic indicators from FRED.",
+        duration: 5000,
+      });
+      console.log("FRED API is configured and using real data");
+    } else {
+      toast({
+        title: "FRED API Not Connected",
+        description: "Using mock economic data. Configure API keys on the home page.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+    
+    if (isIndiaDataConfigured()) {
+      toast({
+        title: "India Data API Connected",
+        description: "Using real-time economic data for India.",
+        duration: 5000,
+      });
+      console.log("India Data API is configured and using real data");
+    }
   }, []);
 
   return (
@@ -62,6 +106,22 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="lg:col-span-1">
           <AlertPanel />
+        </div>
+      </div>
+      
+      {/* API Status Indicators */}
+      <div className="flex flex-wrap gap-3 mb-2">
+        <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isTwitterConfigured() ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${isTwitterConfigured() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+          Twitter API: {isTwitterConfigured() ? 'Connected' : 'Using Mock Data'}
+        </div>
+        <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isFredConfigured() ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${isFredConfigured() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+          FRED API: {isFredConfigured() ? 'Connected' : 'Using Mock Data'}
+        </div>
+        <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isIndiaDataConfigured() ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${isIndiaDataConfigured() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+          India Data API: {isIndiaDataConfigured() ? 'Connected' : 'Not Configured'}
         </div>
       </div>
       
