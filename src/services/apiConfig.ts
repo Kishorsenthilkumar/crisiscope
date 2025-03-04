@@ -18,3 +18,19 @@ export const fredConfig = {
 // Check if API keys are configured
 export const isTwitterConfigured = () => Boolean(twitterConfig.bearerToken);
 export const isFredConfigured = () => Boolean(fredConfig.apiKey);
+
+// Helper function to set API keys at runtime
+export const setAPIKeys = (keys: { 
+  twitterBearerToken?: string; 
+  fredApiKey?: string;
+}) => {
+  if (keys.twitterBearerToken) {
+    // @ts-ignore - Allow runtime setting of environment variable
+    twitterConfig.bearerToken = keys.twitterBearerToken;
+  }
+  
+  if (keys.fredApiKey) {
+    // @ts-ignore - Allow runtime setting of environment variable
+    fredConfig.apiKey = keys.fredApiKey;
+  }
+};
