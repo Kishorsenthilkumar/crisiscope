@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { IndiaStateData } from '../services/indiaDataService';
-import { TrendingUp, TrendingDown, DollarSign, Users, Activity, Buildings } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, Activity, Building } from 'lucide-react';
 
 interface StateSummaryCardsProps {
   state: IndiaStateData;
@@ -83,7 +82,7 @@ export const StateSummaryCards: React.FC<StateSummaryCardsProps> = ({ state }) =
             <h3 className="text-xl font-bold">{state.populationMillions}M</h3>
           </div>
           <div className="bg-primary/10 p-2 rounded-full">
-            <Buildings size={16} className="text-primary" />
+            <Building size={16} className="text-primary" />
           </div>
         </div>
         <div className="flex items-center mt-2">
