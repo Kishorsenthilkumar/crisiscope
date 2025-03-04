@@ -23,13 +23,16 @@ const mockEconomicData: EconomicIndicator[] = [
  * Uses mock data if API key is not configured
  */
 export const fetchEconomicIndicators = async (): Promise<EconomicIndicator[]> => {
+  console.log('FRED API Key Status:', isFredConfigured() ? 'Configured' : 'Not Configured');
+  console.log('FRED API Key:', fredConfig.apiKey ? `${fredConfig.apiKey.substring(0, 3)}...` : 'Not Set');
+  
   if (!isFredConfigured()) {
     console.warn('FRED API not configured. Using mock data.');
     return Promise.resolve(mockEconomicData);
   }
   
   try {
-    console.log('Fetching real-time data from FRED API');
+    console.log('Fetching real-time data from FRED API with configured key');
     // This would be replaced with actual FRED API calls
     // For example, to get unemployment data:
     // const unemploymentResponse = await fetch(
