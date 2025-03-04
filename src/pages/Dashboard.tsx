@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CrisisMap } from '../components/CrisisMap';
 import { CrisisCard } from '../components/CrisisCard';
 import { AlertPanel } from '../components/AlertPanel';
@@ -9,11 +9,23 @@ import { EconomicIndicators } from '../components/EconomicIndicators';
 import { AIPredictions } from '../components/AIPredictions';
 import { AnomalyDetection } from '../components/AnomalyDetection';
 import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe } from 'lucide-react';
+import { toast } from "@/components/ui/use-toast";
 
 const Dashboard: React.FC = () => {
+  useEffect(() => {
+    // Debug information notification
+    console.log("Dashboard component mounted");
+    toast({
+      title: "Dashboard Loaded",
+      description: "The dashboard has been loaded successfully.",
+    });
+  }, []);
+
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-4 gap-6">
+      <h1 className="text-2xl font-bold mb-4">Crisis Management Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <CrisisCard 
           title="Global Risk Score" 
           value="68.5" 
@@ -44,28 +56,28 @@ const Dashboard: React.FC = () => {
         />
       </div>
       
-      <div className="grid grid-cols-3 gap-6 h-[400px]">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
+        <div className="lg:col-span-2">
           <CrisisMap />
         </div>
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <AlertPanel />
         </div>
       </div>
       
       {/* New AI & Data Analysis Section */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TrendChart />
         <SentimentAnalysis />
       </div>
       
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <EconomicIndicators />
         <AIPredictions />
         <AnomalyDetection />
       </div>
       
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="crisis-card p-4">
           <div className="text-lg font-medium mb-4">Regional Risk Breakdown</div>
           <div className="space-y-3">
