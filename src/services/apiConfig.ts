@@ -1,23 +1,41 @@
 
 // API configuration for external data sources
 
+// Load API keys from localStorage on initialization
+const loadStoredKeys = () => {
+  if (typeof window !== 'undefined') {
+    const storedTwitterToken = localStorage.getItem('twitter_bearer_token');
+    const storedFredKey = localStorage.getItem('fred_api_key');
+    const storedIndiaDataKey = localStorage.getItem('india_data_api_key');
+    
+    return {
+      twitterToken: storedTwitterToken || '',
+      fredKey: storedFredKey || '',
+      indiaDataKey: storedIndiaDataKey || '',
+    };
+  }
+  return { twitterToken: '', fredKey: '', indiaDataKey: '' };
+};
+
+const storedKeys = loadStoredKeys();
+
 // Twitter API configuration
 export const twitterConfig = {
   apiKey: import.meta.env.VITE_TWITTER_API_KEY || '',
   apiSecret: import.meta.env.VITE_TWITTER_API_SECRET || '',
-  bearerToken: import.meta.env.VITE_TWITTER_BEARER_TOKEN || '',
+  bearerToken: storedKeys.twitterToken || import.meta.env.VITE_TWITTER_BEARER_TOKEN || '',
   // Default to empty strings if not provided
 };
 
 // FRED (Federal Reserve Economic Data) API configuration
 export const fredConfig = {
-  apiKey: import.meta.env.VITE_FRED_API_KEY || '',
+  apiKey: storedKeys.fredKey || import.meta.env.VITE_FRED_API_KEY || '',
   baseUrl: 'https://api.stlouisfed.org/fred',
 };
 
 // India Economic Data API configuration (for future implementation)
 export const indiaDataConfig = {
-  apiKey: import.meta.env.VITE_INDIA_DATA_API_KEY || '',
+  apiKey: storedKeys.indiaDataKey || import.meta.env.VITE_INDIA_DATA_API_KEY || '',
   baseUrl: 'https://api.example.com/india-economic-data',
 };
 
@@ -34,13 +52,19 @@ export const setAPIKeys = (keys: {
 }) => {
   if (keys.twitterBearerToken) {
     twitterConfig.bearerToken = keys.twitterBearerToken;
+    // Store in localStorage
+    localStorage.setItem('twitter_bearer_token', keys.twitterBearerToken);
   }
   
   if (keys.fredApiKey) {
     fredConfig.apiKey = keys.fredApiKey;
+    // Store in localStorage
+    localStorage.setItem('fred_api_key', keys.fredApiKey);
   }
   
   if (keys.indiaDataApiKey) {
     indiaDataConfig.apiKey = keys.indiaDataApiKey;
+    // Store in localStorage
+    localStorage.setItem('india_data_api_key', keys.indiaDataApiKey);
   }
 };
