@@ -20,6 +20,13 @@ const mockTwitterData: TwitterSentiment[] = [
  * Uses mock data if API keys are not configured
  */
 export const fetchTwitterSentiment = async (): Promise<TwitterSentiment[]> => {
+  // Log the Twitter API key status for debugging
+  console.log('Twitter API Key Status:', isTwitterConfigured() ? 'Configured' : 'Not Configured');
+  
+  if (twitterConfig.bearerToken) {
+    console.log('Twitter Bearer Token:', twitterConfig.bearerToken.substring(0, 3) + '...');
+  }
+  
   if (!isTwitterConfigured()) {
     console.warn('Twitter API not configured. Using mock data.');
     return Promise.resolve(mockTwitterData);
@@ -27,6 +34,7 @@ export const fetchTwitterSentiment = async (): Promise<TwitterSentiment[]> => {
   
   try {
     console.log('Fetching real-time data from Twitter API');
+    
     // This would be replaced with actual Twitter API call using the bearer token
     // For example:
     // const response = await fetch('https://api.twitter.com/2/tweets/search/recent?query=crisis', {

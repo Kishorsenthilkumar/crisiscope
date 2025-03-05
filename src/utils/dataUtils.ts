@@ -9,16 +9,33 @@ let economicCache: EconomicIndicator[] | null = null;
 
 // Simulated sentiment analysis scores from social media
 export const getSentimentData = async () => {
+  // Reset cache to ensure we get fresh data
+  sentimentCache = null;
+  
   if (!sentimentCache) {
-    const twitterData = await fetchTwitterSentiment();
-    
-    // Combine Twitter data with other platforms
-    sentimentCache = [
-      ...twitterData,
-      { platform: 'Reddit', sentiment: -0.22, volume: 28000, change: -0.05 },
-      { platform: 'News Media', sentiment: -0.18, volume: 12000, change: 0.03 },
-      { platform: 'Facebook', sentiment: -0.28, volume: 36000, change: -0.08 },
-    ];
+    try {
+      // Fetch Twitter data first
+      const twitterData = await fetchTwitterSentiment();
+      console.log('Twitter data fetched for sentiment analysis:', twitterData);
+      
+      // Combine Twitter data with other platforms
+      sentimentCache = [
+        ...twitterData,
+        { platform: 'Reddit', sentiment: -0.22, volume: 28000, change: -0.05 },
+        { platform: 'News Media', sentiment: -0.18, volume: 12000, change: 0.03 },
+        { platform: 'Facebook', sentiment: -0.28, volume: 36000, change: -0.08 },
+      ];
+    } catch (error) {
+      console.error('Error in getSentimentData:', error);
+      // Fallback data if fetch fails
+      sentimentCache = [
+        { platform: 'Twitter', sentiment: -0.35, volume: 45000, change: -0.12 },
+        { platform: 'Twitter Trends', sentiment: -0.28, volume: 32000, change: -0.09 },
+        { platform: 'Reddit', sentiment: -0.22, volume: 28000, change: -0.05 },
+        { platform: 'News Media', sentiment: -0.18, volume: 12000, change: 0.03 },
+        { platform: 'Facebook', sentiment: -0.28, volume: 36000, change: -0.08 },
+      ];
+    }
   }
   return sentimentCache;
 };

@@ -54,17 +54,20 @@ export const setAPIKeys = (keys: {
     twitterConfig.bearerToken = keys.twitterBearerToken;
     // Store in localStorage
     localStorage.setItem('twitter_bearer_token', keys.twitterBearerToken);
+    console.log('Twitter Bearer Token saved:', keys.twitterBearerToken.substring(0, 3) + '...');
   }
   
   if (keys.fredApiKey) {
     fredConfig.apiKey = keys.fredApiKey;
     // Store in localStorage
     localStorage.setItem('fred_api_key', keys.fredApiKey);
+    console.log('FRED API Key saved:', keys.fredApiKey.substring(0, 3) + '...');
   }
   
   if (keys.indiaDataApiKey) {
     indiaDataConfig.apiKey = keys.indiaDataApiKey;
     // Store in localStorage
     localStorage.setItem('india_data_api_key', keys.indiaDataApiKey);
+    console.log('India Data API Key saved:', keys.indiaDataApiKey.substring(0, 3) + '...');
   }
 };
