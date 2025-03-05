@@ -1,5 +1,5 @@
 
-// API configuration for external data sources
+// API configuration for external sources
 
 // Load API keys from localStorage on initialization
 const loadStoredKeys = () => {

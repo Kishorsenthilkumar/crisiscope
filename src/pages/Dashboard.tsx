@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { CrisisMap } from '../components/CrisisMap';
 import { CrisisCard } from '../components/CrisisCard';
 import { AlertPanel } from '../components/AlertPanel';
@@ -7,22 +8,20 @@ import { TrendChart } from '../components/TrendChart';
 import { EconomicIndicators } from '../components/EconomicIndicators';
 import { AIPredictions } from '../components/AIPredictions';
 import { AnomalyDetection } from '../components/AnomalyDetection';
-import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe } from 'lucide-react';
+import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe, MapPin } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import { isTwitterConfigured, isFredConfigured, isIndiaDataConfigured } from '../services/apiConfig';
 
 const Dashboard: React.FC = () => {
   useEffect(() => {
-    // Check API configuration status
     console.log("Dashboard component mounted");
     
-    // Dashboard loaded notification
     toast({
       title: "Dashboard Loaded",
       description: "The dashboard has been loaded successfully.",
     });
     
-    // API status notifications
     if (isTwitterConfigured()) {
       toast({
         title: "Twitter API Connected",
@@ -67,7 +66,15 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold mb-4">Crisis Management Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Crisis Management Dashboard</h1>
+        <Link to="/india-map">
+          <Button variant="outline" className="flex items-center gap-2">
+            <MapPin size={16} />
+            <span>India Economic Map</span>
+          </Button>
+        </Link>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <CrisisCard 
@@ -109,7 +116,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* API Status Indicators */}
       <div className="flex flex-wrap gap-3 mb-2">
         <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isTwitterConfigured() ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
           <div className={`w-2 h-2 rounded-full ${isTwitterConfigured() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
@@ -125,7 +131,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* New AI & Data Analysis Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TrendChart />
         <SentimentAnalysis />

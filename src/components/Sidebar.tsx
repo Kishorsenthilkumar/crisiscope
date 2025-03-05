@@ -1,53 +1,53 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Home, BarChart3, AlertCircle, Map, Bell, FileText, Settings } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { BarChart3, Globe2, FileBarChart, Settings, MapPin } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
-interface NavItemProps {
-  icon: React.ReactNode;
-  label: string;
-  to: string;
-  active?: boolean;
-}
-
-const NavItem: React.FC<NavItemProps> = ({ icon, label, to, active = false }) => {
+export const Sidebar = () => {
+  const location = useLocation();
+  
+  const links = [
+    { to: '/dashboard', icon: <BarChart3 size={18} />, label: 'Dashboard' },
+    { to: '/india-map', icon: <MapPin size={18} />, label: 'India Economic Map' },
+    { to: '/reports', icon: <FileBarChart size={18} />, label: 'Reports' },
+    { to: '/settings', icon: <Settings size={18} />, label: 'Settings' },
+  ];
+  
   return (
-    <Link
-      to={to}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-        active 
-          ? 'bg-primary text-primary-foreground' 
-          : 'text-foreground hover:bg-secondary'
-      }`}
-    >
-      {icon}
-      <span className="font-medium">{label}</span>
-    </Link>
-  );
-};
-
-export const Sidebar: React.FC = () => {
-  return (
-    <aside className="w-64 border-r border-border/60 h-screen py-6 flex flex-col bg-background/80 backdrop-blur-md">
-      <div className="px-6 mb-8">
-        <h1 className="font-bold text-2xl tracking-tight">
-          <span className="text-primary">Crisis</span>
-          <span>Scope</span>
-        </h1>
+    <div className="w-16 md:w-56 bg-card border-r border-border flex flex-col h-full">
+      <div className="p-4 flex items-center justify-center md:justify-start">
+        <Globe2 className="h-8 w-8 text-primary" />
+        <span className="ml-2 font-semibold text-xl hidden md:inline">Crisis Watch</span>
       </div>
       
-      <nav className="px-2 flex-1 space-y-1">
-        <NavItem icon={<Home size={20} />} label="Overview" to="/dashboard" active />
-        <NavItem icon={<Map size={20} />} label="Crisis Map" to="/map" />
-        <NavItem icon={<BarChart3 size={20} />} label="Analytics" to="/analytics" />
-        <NavItem icon={<AlertCircle size={20} />} label="Alerts" to="/alerts" />
-        <NavItem icon={<Bell size={20} />} label="Notifications" to="/notifications" />
-        <NavItem icon={<FileText size={20} />} label="Reports" to="/reports" />
-      </nav>
-      
-      <div className="px-2 mt-auto">
-        <NavItem icon={<Settings size={20} />} label="Settings" to="/settings" />
+      <div className="mt-8 px-2 space-y-1 flex-1">
+        {links.map(link => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className={cn(
+              "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
+              "hover:bg-accent hover:text-accent-foreground",
+              location.pathname === link.to
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground"
+            )}
+          >
+            {link.icon}
+            <span className="ml-3 hidden md:inline">{link.label}</span>
+          </Link>
+        ))}
       </div>
-    </aside>
+      
+      <div className="p-4 mt-auto">
+        <Link
+          to="/"
+          className="flex items-center rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <span className="hidden md:inline">Back to Home</span>
+        </Link>
+      </div>
+    </div>
   );
 };
