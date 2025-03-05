@@ -10,6 +10,7 @@ export interface IndiaStateData {
   unemploymentRate: number; // percentage
   populationMillions: number;
   riskScore: number; // 0-100, higher is worse
+  literacyRate: number; // percentage
   coordinates?: [number, number]; // longitude, latitude
 }
 
@@ -24,6 +25,21 @@ export interface DistrictData {
   riskScore: number; // 0-100, higher is worse
 }
 
+// Interface for economic crisis indicators
+export interface EconomicCrisisIndicators {
+  unemploymentIndicator: number; // 0-100
+  povertyIndicator: number; // 0-100
+  gdpGrowthIndicator: number; // 0-100
+  riskScore: number; // 0-100
+  overallIndicator: number; // 0-100
+}
+
+// Interface for GDP history data point
+export interface GDPHistoryDataPoint {
+  period: string;
+  gdp: number;
+}
+
 // Mock data for Indian states with real coordinates
 const indiaStates: IndiaStateData[] = [
   {
@@ -34,6 +50,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 7.2,
     populationMillions: 123.1,
     riskScore: 35,
+    literacyRate: 84.8,
     coordinates: [75.7139, 19.7515]
   },
   {
@@ -44,6 +61,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 5.8,
     populationMillions: 77.8,
     riskScore: 28,
+    literacyRate: 80.3,
     coordinates: [78.6569, 11.1271]
   },
   {
@@ -54,6 +72,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 4.8,
     populationMillions: 70.4,
     riskScore: 25,
+    literacyRate: 79.3,
     coordinates: [71.5724, 22.2587]
   },
   {
@@ -64,6 +83,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 5.2,
     populationMillions: 67.6,
     riskScore: 30,
+    literacyRate: 77.2,
     coordinates: [75.7139, 15.3173]
   },
   {
@@ -74,6 +94,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 10.1,
     populationMillions: 231.5,
     riskScore: 68,
+    literacyRate: 69.7,
     coordinates: [80.9462, 26.8467]
   },
   {
@@ -84,6 +105,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 8.5,
     populationMillions: 99.6,
     riskScore: 52,
+    literacyRate: 77.1,
     coordinates: [87.8550, 23.6102]
   },
   {
@@ -94,6 +116,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 7.9,
     populationMillions: 79.3,
     riskScore: 45,
+    literacyRate: 67.1,
     coordinates: [74.2179, 27.0238]
   },
   {
@@ -104,6 +127,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 6.7,
     populationMillions: 53.9,
     riskScore: 42,
+    literacyRate: 67.4,
     coordinates: [79.7400, 15.9129]
   },
   {
@@ -114,6 +138,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 5.5,
     populationMillions: 39.6,
     riskScore: 32,
+    literacyRate: 72.8,
     coordinates: [79.0193, 18.1124]
   },
   {
@@ -124,6 +149,7 @@ const indiaStates: IndiaStateData[] = [
     unemploymentRate: 9.1,
     populationMillions: 35.7,
     riskScore: 38,
+    literacyRate: 94.0,
     coordinates: [76.2711, 10.8505]
   }
 ];
@@ -166,6 +192,56 @@ export const getDistrictsByState = (stateId: string): DistrictData[] => {
 // Function to get a specific district by ID
 export const getDistrictById = (districtId: string): DistrictData | undefined => {
   return districts.find(district => district.id === districtId);
+};
+
+// Function to get economic crisis indicators for a state
+export const getEconomicCrisisIndicators = (stateId: string): EconomicCrisisIndicators | null => {
+  const state = getStateById(stateId);
+  if (!state) return null;
+  
+  // Generate mock indicators based on state data
+  const unemploymentIndicator = Math.min(100, state.unemploymentRate * 10);
+  const povertyIndicator = Math.min(100, state.riskScore * 1.2);
+  const gdpGrowthIndicator = Math.max(0, 100 - (state.gdpGrowth * 8));
+  
+  return {
+    unemploymentIndicator,
+    povertyIndicator,
+    gdpGrowthIndicator,
+    riskScore: state.riskScore,
+    overallIndicator: Math.round((unemploymentIndicator + povertyIndicator + gdpGrowthIndicator) / 3)
+  };
+};
+
+// Function to get GDP history for a state (mock data)
+export const getStateGDPHistory = (stateId: string): GDPHistoryDataPoint[] => {
+  const state = getStateById(stateId);
+  if (!state) return [];
+  
+  // Generate mock GDP history for the past 5 years (quarterly data)
+  const gdpHistory: GDPHistoryDataPoint[] = [];
+  const currentYear = new Date().getFullYear();
+  let baseGDP = state.gdp * 0.8; // Start with 80% of current GDP 5 years ago
+  
+  for (let year = currentYear - 4; year <= currentYear; year++) {
+    for (let quarter = 1; quarter <= 4; quarter++) {
+      // Skip future quarters in current year
+      if (year === currentYear && quarter > Math.floor((new Date().getMonth() + 3) / 3)) {
+        continue;
+      }
+      
+      // Add some random variation to growth
+      const quarterlyGrowth = (state.gdpGrowth / 4) * (0.8 + Math.random() * 0.4);
+      baseGDP *= (1 + quarterlyGrowth / 100);
+      
+      gdpHistory.push({
+        period: `${year} Q${quarter}`,
+        gdp: Math.round(baseGDP * 10) / 10
+      });
+    }
+  }
+  
+  return gdpHistory;
 };
 
 // Add to indiaDataConfig in apiConfig.ts

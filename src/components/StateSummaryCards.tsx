@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IndiaStateData } from '../services/indiaDataService';
 import { TrendingUp, TrendingDown, DollarSign, Users, Activity, Building } from 'lucide-react';
