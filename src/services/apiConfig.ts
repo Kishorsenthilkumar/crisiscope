@@ -7,14 +7,16 @@ const loadStoredKeys = () => {
     const storedTwitterToken = localStorage.getItem('twitter_bearer_token');
     const storedFredKey = localStorage.getItem('fred_api_key');
     const storedIndiaDataKey = localStorage.getItem('india_data_api_key');
+    const storedMapboxToken = localStorage.getItem('mapbox_token');
     
     return {
       twitterToken: storedTwitterToken || '',
       fredKey: storedFredKey || '',
       indiaDataKey: storedIndiaDataKey || '',
+      mapboxToken: storedMapboxToken || '',
     };
   }
-  return { twitterToken: '', fredKey: '', indiaDataKey: '' };
+  return { twitterToken: '', fredKey: '', indiaDataKey: '', mapboxToken: '' };
 };
 
 const storedKeys = loadStoredKeys();
@@ -39,16 +41,23 @@ export const indiaDataConfig = {
   baseUrl: 'https://api.example.com/india-economic-data',
 };
 
+// Mapbox configuration
+export const mapboxConfig = {
+  accessToken: storedKeys.mapboxToken || import.meta.env.VITE_MAPBOX_TOKEN || '',
+};
+
 // Check if API keys are configured
 export const isTwitterConfigured = () => Boolean(twitterConfig.bearerToken);
 export const isFredConfigured = () => Boolean(fredConfig.apiKey);
 export const isIndiaDataConfigured = () => Boolean(indiaDataConfig.apiKey);
+export const isMapboxConfigured = () => Boolean(mapboxConfig.accessToken);
 
 // Helper function to set API keys at runtime
 export const setAPIKeys = (keys: { 
   twitterBearerToken?: string; 
   fredApiKey?: string;
   indiaDataApiKey?: string;
+  mapboxToken?: string;
 }) => {
   if (keys.twitterBearerToken) {
     twitterConfig.bearerToken = keys.twitterBearerToken;
@@ -69,5 +78,12 @@ export const setAPIKeys = (keys: {
     // Store in localStorage
     localStorage.setItem('india_data_api_key', keys.indiaDataApiKey);
     console.log('India Data API Key saved:', keys.indiaDataApiKey.substring(0, 3) + '...');
+  }
+  
+  if (keys.mapboxToken) {
+    mapboxConfig.accessToken = keys.mapboxToken;
+    // Store in localStorage
+    localStorage.setItem('mapbox_token', keys.mapboxToken);
+    console.log('Mapbox Token saved:', keys.mapboxToken.substring(0, 3) + '...');
   }
 };

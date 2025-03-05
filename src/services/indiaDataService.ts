@@ -1,241 +1,172 @@
 
-// Service for India state and district economic data
+// Mock data service for India economic data
+// This would be replaced with actual API calls in a production environment
 
 export interface IndiaStateData {
   id: string;
   name: string;
-  gdp: number;
-  gdpGrowth: number;
-  unemploymentRate: number;
-  povertyRate: number;
+  gdp: number; // in billions of dollars
+  gdpGrowth: number; // percentage
+  unemploymentRate: number; // percentage
   populationMillions: number;
-  literacyRate: number;
-  riskScore: number;
-  mainIndustries: string[];
+  riskScore: number; // 0-100, higher is worse
+  coordinates?: [number, number]; // longitude, latitude
 }
 
-export interface IndiaDistrictData {
+export interface DistrictData {
   id: string;
   stateId: string;
   name: string;
-  gdp: number;
-  gdpGrowth: number;
-  unemploymentRate: number;
+  gdp: number; // in billions of dollars
+  gdpGrowth: number; // percentage
+  unemploymentRate: number; // percentage
   populationMillions: number;
-  riskScore: number;
+  riskScore: number; // 0-100, higher is worse
 }
 
-// Mock data for Indian states
-export const getIndiaStatesData = (): IndiaStateData[] => [
+// Mock data for Indian states with real coordinates
+const indiaStates: IndiaStateData[] = [
   {
     id: "MH",
     name: "Maharashtra",
     gdp: 422.4,
-    gdpGrowth: 7.5,
-    unemploymentRate: 4.2,
-    povertyRate: 17.3,
+    gdpGrowth: 5.6,
+    unemploymentRate: 7.2,
     populationMillions: 123.1,
-    literacyRate: 82.3,
-    riskScore: 48,
-    mainIndustries: ["Manufacturing", "IT", "Finance", "Agriculture"]
+    riskScore: 35,
+    coordinates: [75.7139, 19.7515]
   },
   {
     id: "TN",
     name: "Tamil Nadu",
     gdp: 254.3,
-    gdpGrowth: 8.0,
-    unemploymentRate: 2.9,
-    povertyRate: 11.3,
-    populationMillions: 76.8,
-    literacyRate: 80.3,
-    riskScore: 35,
-    mainIndustries: ["Automobile", "Textiles", "Heavy Industries", "IT"]
+    gdpGrowth: 6.2,
+    unemploymentRate: 5.8,
+    populationMillions: 77.8,
+    riskScore: 28,
+    coordinates: [78.6569, 11.1271]
   },
   {
     id: "GJ",
     name: "Gujarat",
     gdp: 222.8,
-    gdpGrowth: 9.2,
-    unemploymentRate: 3.4,
-    povertyRate: 16.6,
-    populationMillions: 63.9,
-    literacyRate: 78.0,
-    riskScore: 41,
-    mainIndustries: ["Petrochemicals", "Textiles", "Pharmaceuticals", "Diamonds"]
+    gdpGrowth: 7.1,
+    unemploymentRate: 4.8,
+    populationMillions: 70.4,
+    riskScore: 25,
+    coordinates: [71.5724, 22.2587]
   },
   {
     id: "KA",
     name: "Karnataka",
-    gdp: 219.3,
-    gdpGrowth: 8.8,
-    unemploymentRate: 2.8,
-    povertyRate: 20.9,
+    gdp: 234.5,
+    gdpGrowth: 8.2,
+    unemploymentRate: 5.2,
     populationMillions: 67.6,
-    literacyRate: 77.2,
-    riskScore: 38,
-    mainIndustries: ["IT", "Biotechnology", "Aerospace", "Manufacturing"]
+    riskScore: 30,
+    coordinates: [75.7139, 15.3173]
   },
   {
     id: "UP",
     name: "Uttar Pradesh",
-    gdp: 215.9,
-    gdpGrowth: 6.5,
-    unemploymentRate: 6.4,
-    povertyRate: 29.4,
-    populationMillions: 224.9,
-    literacyRate: 67.7,
-    riskScore: 65,
-    mainIndustries: ["Agriculture", "Food Processing", "Tourism", "Textiles"]
+    gdp: 240.2,
+    gdpGrowth: 4.1,
+    unemploymentRate: 10.1,
+    populationMillions: 231.5,
+    riskScore: 68,
+    coordinates: [80.9462, 26.8467]
   },
   {
     id: "WB",
     name: "West Bengal",
-    gdp: 158.8,
-    gdpGrowth: 6.0,
-    unemploymentRate: 5.8,
-    povertyRate: 20.0,
-    populationMillions: 99.7,
-    literacyRate: 76.3,
+    gdp: 169.1,
+    gdpGrowth: 3.9,
+    unemploymentRate: 8.5,
+    populationMillions: 99.6,
     riskScore: 52,
-    mainIndustries: ["Tea", "Jute", "Engineering", "Mining"]
+    coordinates: [87.8550, 23.6102]
   },
   {
     id: "RJ",
     name: "Rajasthan",
-    gdp: 124.6,
-    gdpGrowth: 5.9,
-    unemploymentRate: 5.2,
-    povertyRate: 14.7,
-    populationMillions: 79.2,
-    literacyRate: 66.1,
-    riskScore: 54,
-    mainIndustries: ["Minerals", "Tourism", "Textiles", "Cement"]
+    gdp: 140.3,
+    gdpGrowth: 5.3,
+    unemploymentRate: 7.9,
+    populationMillions: 79.3,
+    riskScore: 45,
+    coordinates: [74.2179, 27.0238]
   },
   {
     id: "AP",
     name: "Andhra Pradesh",
-    gdp: 140.9,
-    gdpGrowth: 11.2,
-    unemploymentRate: 4.7,
-    povertyRate: 9.2,
+    gdp: 145.8,
+    gdpGrowth: 4.8,
+    unemploymentRate: 6.7,
     populationMillions: 53.9,
-    literacyRate: 67.4,
-    riskScore: 39,
-    mainIndustries: ["Agriculture", "IT", "Pharmaceuticals", "Mining"]
+    riskScore: 42,
+    coordinates: [79.7400, 15.9129]
   },
   {
     id: "TS",
     name: "Telangana",
-    gdp: 143.7,
-    gdpGrowth: 14.9,
-    unemploymentRate: 3.9,
-    povertyRate: 9.0,
-    populationMillions: 37.9,
-    literacyRate: 72.8,
+    gdp: 139.6,
+    gdpGrowth: 6.8,
+    unemploymentRate: 5.5,
+    populationMillions: 39.6,
     riskScore: 32,
-    mainIndustries: ["IT", "Pharmaceuticals", "Manufacturing", "Agriculture"]
+    coordinates: [79.0193, 18.1124]
   },
   {
     id: "KL",
     name: "Kerala",
-    gdp: 128.7,
-    gdpGrowth: 7.5,
-    unemploymentRate: 9.0,
-    povertyRate: 7.0,
+    gdp: 118.5,
+    gdpGrowth: 5.2,
+    unemploymentRate: 9.1,
     populationMillions: 35.7,
-    literacyRate: 94.0,
-    riskScore: 30,
-    mainIndustries: ["Tourism", "Seafood", "Spices", "IT"]
+    riskScore: 38,
+    coordinates: [76.2711, 10.8505]
   }
 ];
 
-// Mock data for districts
-export const getDistrictsByState = (stateId: string): IndiaDistrictData[] => {
-  switch (stateId) {
-    case "MH":
-      return [
-        { id: "MH-1", stateId: "MH", name: "Mumbai", gdp: 98.4, gdpGrowth: 6.9, unemploymentRate: 3.8, populationMillions: 12.4, riskScore: 45 },
-        { id: "MH-2", stateId: "MH", name: "Pune", gdp: 68.2, gdpGrowth: 8.3, unemploymentRate: 2.9, populationMillions: 7.3, riskScore: 37 },
-        { id: "MH-3", stateId: "MH", name: "Nagpur", gdp: 34.8, gdpGrowth: 7.2, unemploymentRate: 4.6, populationMillions: 4.4, riskScore: 52 }
-      ];
-    case "TN":
-      return [
-        { id: "TN-1", stateId: "TN", name: "Chennai", gdp: 78.6, gdpGrowth: 7.8, unemploymentRate: 2.5, populationMillions: 8.9, riskScore: 33 },
-        { id: "TN-2", stateId: "TN", name: "Coimbatore", gdp: 42.3, gdpGrowth: 8.7, unemploymentRate: 2.2, populationMillions: 3.5, riskScore: 29 },
-        { id: "TN-3", stateId: "TN", name: "Madurai", gdp: 27.9, gdpGrowth: 7.4, unemploymentRate: 3.1, populationMillions: 3.0, riskScore: 40 }
-      ];
-    case "KA":
-      return [
-        { id: "KA-1", stateId: "KA", name: "Bengaluru", gdp: 105.3, gdpGrowth: 10.3, unemploymentRate: 2.1, populationMillions: 12.3, riskScore: 32 },
-        { id: "KA-2", stateId: "KA", name: "Mysuru", gdp: 18.9, gdpGrowth: 7.6, unemploymentRate: 3.3, populationMillions: 1.2, riskScore: 36 },
-        { id: "KA-3", stateId: "KA", name: "Mangaluru", gdp: 14.5, gdpGrowth: 6.9, unemploymentRate: 3.0, populationMillions: 0.6, riskScore: 40 }
-      ];
-    default:
-      return [];
-  }
+// Function to get all India states data
+export const getIndiaStatesData = (): IndiaStateData[] => {
+  return indiaStates;
 };
 
-// Calculate economic indicators for visualization
-export const getEconomicCrisisIndicators = (stateId: string) => {
-  const states = getIndiaStatesData();
-  const state = states.find(s => s.id === stateId);
-  
-  if (!state) return null;
-  
-  return {
-    // Higher unemployment is worse
-    unemploymentIndicator: Math.min(100, (state.unemploymentRate / 15) * 100),
-    // Higher poverty is worse
-    povertyIndicator: Math.min(100, (state.povertyRate / 30) * 100),
-    // Lower GDP growth is worse
-    gdpGrowthIndicator: Math.max(0, 100 - ((15 - state.gdpGrowth) / 15) * 100),
-    // Risk score as reported
-    riskScore: state.riskScore,
-    // Combined indicator (weighted average)
-    overallIndicator: (
-      (state.unemploymentRate / 15) * 35 +
-      (state.povertyRate / 30) * 25 +
-      ((15 - state.gdpGrowth) / 15) * 20 +
-      (state.riskScore / 100) * 20
-    ).toFixed(1)
-  };
+// Function to get a specific state by ID
+export const getStateById = (stateId: string): IndiaStateData | undefined => {
+  return indiaStates.find(state => state.id === stateId);
 };
 
-// API to get GSDP historical data for visualization
-export const getStateGDPHistory = (stateId: string) => {
-  // Mock quarterly GDP data for the past 5 years
-  const baseGDP = {
-    "MH": 400, "TN": 240, "GJ": 210, "KA": 200, 
-    "UP": 200, "WB": 150, "RJ": 120, "AP": 135,
-    "TS": 140, "KL": 125
-  }[stateId] || 100;
-  
-  const growth = {
-    "MH": 2.0, "TN": 2.2, "GJ": 2.3, "KA": 2.4, 
-    "UP": 1.7, "WB": 1.6, "RJ": 1.5, "AP": 2.1,
-    "TS": 2.6, "KL": 1.9
-  }[stateId] || 2.0;
-  
-  const volatility = {
-    "MH": 0.3, "TN": 0.25, "GJ": 0.28, "KA": 0.31, 
-    "UP": 0.4, "WB": 0.32, "RJ": 0.36, "AP": 0.29,
-    "TS": 0.3, "KL": 0.27
-  }[stateId] || 0.3;
-  
-  // Generate quarterly data for 5 years (20 quarters)
-  const data = [];
-  for (let i = 0; i < 20; i++) {
-    const year = 2020 + Math.floor(i / 4);
-    const quarter = (i % 4) + 1;
-    const randomFactor = (Math.random() - 0.5) * volatility;
-    const trendFactor = (i / 20) * growth;
-    const gdpValue = baseGDP * (1 + trendFactor + randomFactor);
-    
-    data.push({
-      period: `Q${quarter} ${year}`,
-      gdp: parseFloat(gdpValue.toFixed(1))
-    });
-  }
-  
-  return data;
+// Mock districts data
+const districts: DistrictData[] = [
+  // Maharashtra districts
+  { id: "MH-01", stateId: "MH", name: "Mumbai", gdp: 168.9, gdpGrowth: 6.3, unemploymentRate: 6.1, populationMillions: 20.4, riskScore: 30 },
+  { id: "MH-02", stateId: "MH", name: "Pune", gdp: 85.2, gdpGrowth: 7.5, unemploymentRate: 5.8, populationMillions: 10.2, riskScore: 25 },
+  { id: "MH-03", stateId: "MH", name: "Nagpur", gdp: 42.8, gdpGrowth: 4.9, unemploymentRate: 8.2, populationMillions: 4.8, riskScore: 42 },
+
+  // Tamil Nadu districts
+  { id: "TN-01", stateId: "TN", name: "Chennai", gdp: 75.3, gdpGrowth: 5.8, unemploymentRate: 5.2, populationMillions: 10.9, riskScore: 28 },
+  { id: "TN-02", stateId: "TN", name: "Coimbatore", gdp: 38.1, gdpGrowth: 6.7, unemploymentRate: 4.8, populationMillions: 3.6, riskScore: 22 },
+  { id: "TN-03", stateId: "TN", name: "Madurai", gdp: 26.4, gdpGrowth: 5.2, unemploymentRate: 6.3, populationMillions: 3.2, riskScore: 35 },
+
+  // Gujarat districts
+  { id: "GJ-01", stateId: "GJ", name: "Ahmedabad", gdp: 65.7, gdpGrowth: 7.4, unemploymentRate: 4.1, populationMillions: 8.1, riskScore: 20 },
+  { id: "GJ-02", stateId: "GJ", name: "Surat", gdp: 48.2, gdpGrowth: 8.2, unemploymentRate: 3.9, populationMillions: 6.8, riskScore: 18 },
+  { id: "GJ-03", stateId: "GJ", name: "Vadodara", gdp: 29.5, gdpGrowth: 6.8, unemploymentRate: 5.1, populationMillions: 4.2, riskScore: 30 },
+
+  // Add more districts for other states as needed...
+];
+
+// Function to get districts by state ID
+export const getDistrictsByState = (stateId: string): DistrictData[] => {
+  return districts.filter(district => district.stateId === stateId);
 };
+
+// Function to get a specific district by ID
+export const getDistrictById = (districtId: string): DistrictData | undefined => {
+  return districts.find(district => district.id === districtId);
+};
+
+// Add to indiaDataConfig in apiConfig.ts
+export const isIndiaDataConfigured = () => true;

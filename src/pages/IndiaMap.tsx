@@ -2,14 +2,17 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StateMap } from '../components/StateMap';
+import { RealStateMap } from '../components/RealStateMap';
 import { StateEconomicDetails } from '../components/StateEconomicDetails';
 import { DistrictList } from '../components/DistrictList';
 import { getIndiaStatesData, IndiaStateData } from '../services/indiaDataService';
 import { StateSummaryCards } from '../components/StateSummaryCards';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const IndiaMap: React.FC = () => {
   const [selectedState, setSelectedState] = useState<IndiaStateData | null>(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
+  const [mapType, setMapType] = useState<'schematic' | 'real'>('real');
   
   const handleStateSelect = (stateId: string) => {
     const states = getIndiaStatesData();
@@ -33,15 +36,30 @@ const IndiaMap: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader className="pb-2">
-              <CardTitle>
-                {selectedState ? `${selectedState.name} State Map` : 'India State Map'}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  {selectedState ? `${selectedState.name} State Map` : 'India State Map'}
+                </CardTitle>
+                <Tabs defaultValue="real" onValueChange={(value) => setMapType(value as 'schematic' | 'real')}>
+                  <TabsList>
+                    <TabsTrigger value="schematic">Schematic</TabsTrigger>
+                    <TabsTrigger value="real">Real Map</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
-              <StateMap 
-                selectedStateId={selectedState?.id} 
-                onStateSelect={handleStateSelect} 
-              />
+              {mapType === 'schematic' ? (
+                <StateMap 
+                  selectedStateId={selectedState?.id} 
+                  onStateSelect={handleStateSelect} 
+                />
+              ) : (
+                <RealStateMap
+                  selectedStateId={selectedState?.id}
+                  onStateSelect={handleStateSelect}
+                />
+              )}
             </CardContent>
           </Card>
         </div>
