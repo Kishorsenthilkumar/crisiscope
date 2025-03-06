@@ -70,6 +70,12 @@ const IndiaMap: React.FC = () => {
             <>
               <StateSummaryCards state={selectedState} />
               
+              {/* Display the District Crisis Map component prominently */}
+              <DistrictCrisisMap 
+                stateId={selectedState.id}
+                selectedDistrictId={selectedDistrictId}
+              />
+              
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle>Economic Details</CardTitle>
@@ -81,12 +87,6 @@ const IndiaMap: React.FC = () => {
                   />
                 </CardContent>
               </Card>
-              
-              {/* Add the District Crisis Map component */}
-              <DistrictCrisisMap 
-                stateId={selectedState.id}
-                selectedDistrictId={selectedDistrictId}
-              />
               
               <Card>
                 <CardHeader className="pb-2">
