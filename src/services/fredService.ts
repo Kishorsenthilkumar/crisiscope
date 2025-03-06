@@ -1,5 +1,6 @@
 
-import { fredConfig, isFredConfigured } from './apiConfig';
+import { isFredConfigured } from './apiConfig';
+import { fetchWithFredAuth } from './backendService';
 
 // Types for FRED economic data
 export interface EconomicIndicator {
@@ -19,12 +20,11 @@ const mockEconomicData: EconomicIndicator[] = [
 ];
 
 /**
- * Fetches economic indicators from FRED API
+ * Fetches economic indicators from FRED API via secure backend
  * Uses mock data if API key is not configured
  */
 export const fetchEconomicIndicators = async (): Promise<EconomicIndicator[]> => {
   console.log('FRED API Key Status:', isFredConfigured() ? 'Configured' : 'Not Configured');
-  console.log('FRED API Key:', fredConfig.apiKey ? `${fredConfig.apiKey.substring(0, 3)}...` : 'Not Set');
   
   if (!isFredConfigured()) {
     console.warn('FRED API not configured. Using mock data.');
@@ -32,32 +32,21 @@ export const fetchEconomicIndicators = async (): Promise<EconomicIndicator[]> =>
   }
   
   try {
-    console.log('Fetching real-time data from FRED API with configured key');
-    // This would be replaced with actual FRED API calls
-    // For example, to get unemployment data:
-    // const unemploymentResponse = await fetch(
-    //   `${fredConfig.baseUrl}/series/observations?series_id=UNRATE&api_key=${fredConfig.apiKey}&file_type=json&sort_order=desc&limit=2`
-    // );
-    // const unemploymentData = await unemploymentResponse.json();
+    console.log('Fetching real-time data from FRED API via backend');
     
-    // For inflation (CPI):
-    // const inflationResponse = await fetch(
-    //   `${fredConfig.baseUrl}/series/observations?series_id=CPIAUCSL&api_key=${fredConfig.apiKey}&file_type=json&sort_order=desc&limit=2`
-    // );
-    // const inflationData = await inflationResponse.json();
+    // Use our backend proxy to fetch economic data
+    // This prevents API keys from being exposed to the client
+    const response = await fetchWithFredAuth('UNRATE', {
+      observation_start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 90 days
+      observation_end: new Date().toISOString().split('T')[0], // Today
+    });
     
-    // Calculate change and process data...
+    if (response && response.data) {
+      console.log('Successfully fetched real-time FRED data:', response.data);
+      return response.data;
+    }
     
-    // For now, simulate real API call with a modified version of mock data
-    // to show that we're using the real API connection
-    const realTimeData = mockEconomicData.map(item => ({
-      ...item,
-      value: parseFloat((item.value + (Math.random() * 0.5 - 0.25)).toFixed(1)), // Slightly randomize to simulate real data
-      change: parseFloat((item.change + (Math.random() * 0.2 - 0.1)).toFixed(1)), // Slightly randomize change
-    }));
-    
-    console.log('Successfully fetched real-time FRED data:', realTimeData);
-    return realTimeData;
+    throw new Error('Invalid response from FRED API');
   } catch (error) {
     console.error('Error fetching FRED data:', error);
     return mockEconomicData; // Fallback to mock data on error

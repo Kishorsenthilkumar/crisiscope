@@ -1,7 +1,9 @@
 
 // API configuration for external sources
+// Now using backend storage for API keys
 
 // Load API keys from localStorage on initialization
+// This will be replaced by backend fetching in the new system
 const loadStoredKeys = () => {
   if (typeof window !== 'undefined') {
     const storedTwitterToken = localStorage.getItem('twitter_bearer_token');
@@ -53,37 +55,32 @@ export const isIndiaDataConfigured = () => Boolean(indiaDataConfig.apiKey);
 export const isMapboxConfigured = () => Boolean(mapboxConfig.accessToken);
 
 // Helper function to set API keys at runtime
+// This is now a stub that will be redirected to use the backendService in APIKeyForm
 export const setAPIKeys = (keys: { 
   twitterBearerToken?: string; 
   fredApiKey?: string;
   indiaDataApiKey?: string;
   mapboxToken?: string;
 }) => {
+  console.warn('setAPIKeys is deprecated. Use storeAPIKeys from backendService instead');
+  
   if (keys.twitterBearerToken) {
     twitterConfig.bearerToken = keys.twitterBearerToken;
-    // Store in localStorage
     localStorage.setItem('twitter_bearer_token', keys.twitterBearerToken);
-    console.log('Twitter Bearer Token saved:', keys.twitterBearerToken.substring(0, 3) + '...');
   }
   
   if (keys.fredApiKey) {
     fredConfig.apiKey = keys.fredApiKey;
-    // Store in localStorage
     localStorage.setItem('fred_api_key', keys.fredApiKey);
-    console.log('FRED API Key saved:', keys.fredApiKey.substring(0, 3) + '...');
   }
   
   if (keys.indiaDataApiKey) {
     indiaDataConfig.apiKey = keys.indiaDataApiKey;
-    // Store in localStorage
     localStorage.setItem('india_data_api_key', keys.indiaDataApiKey);
-    console.log('India Data API Key saved:', keys.indiaDataApiKey.substring(0, 3) + '...');
   }
   
   if (keys.mapboxToken) {
     mapboxConfig.accessToken = keys.mapboxToken;
-    // Store in localStorage
     localStorage.setItem('mapbox_token', keys.mapboxToken);
-    console.log('Mapbox Token saved:', keys.mapboxToken.substring(0, 3) + '...');
   }
 };
