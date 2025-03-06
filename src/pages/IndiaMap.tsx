@@ -70,7 +70,7 @@ const IndiaMap: React.FC = () => {
             <>
               <StateSummaryCards state={selectedState} />
               
-              {/* Display the District Crisis Map component prominently */}
+              {/* Display the comprehensive District Crisis Report */}
               <DistrictCrisisMap 
                 stateId={selectedState.id}
                 selectedDistrictId={selectedDistrictId}
