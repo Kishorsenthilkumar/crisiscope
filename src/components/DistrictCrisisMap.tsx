@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, TrendingUp, TrendingDown, AlertCircle, FileText, Filter } from 'lucide-react';
+import { ChevronRight, TrendingUp, TrendingDown, AlertCircle, FileText, Filter, Download, FileJson } from 'lucide-react';
 import { getDistrictsByState } from '../services/indiaDataService';
 import {
   Tooltip,
@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
 
 interface DistrictCrisisMapProps {
   stateId: string;
@@ -73,6 +80,65 @@ export const DistrictCrisisMap: React.FC<DistrictCrisisMapProps> = ({
     if (severity === 'medium') return 'text-orange-500';
     return 'text-green-500';
   };
+
+  // Function to download district data
+  const downloadData = (format: 'json' | 'csv') => {
+    // Prepare data for download
+    const dataToDownload = sortedDistricts.map(district => ({
+      id: district.id,
+      name: district.name,
+      riskScore: district.riskScore,
+      gdp: district.gdp,
+      gdpGrowth: district.gdpGrowth,
+      unemploymentRate: district.unemploymentRate,
+      populationMillions: district.populationMillions,
+      severity: district.severity
+    }));
+
+    // Create file content based on format
+    let fileContent = '';
+    let fileName = '';
+    let fileType = '';
+
+    if (format === 'json') {
+      fileContent = JSON.stringify(dataToDownload, null, 2);
+      fileName = `district_crisis_report_${stateId}_${new Date().toISOString().split('T')[0]}.json`;
+      fileType = 'application/json';
+    } else if (format === 'csv') {
+      // Create CSV header
+      const headers = ['id', 'name', 'riskScore', 'gdp', 'gdpGrowth', 'unemploymentRate', 'populationMillions', 'severity'];
+      fileContent = headers.join(',') + '\n';
+      
+      // Add data rows
+      dataToDownload.forEach(district => {
+        const row = headers.map(header => {
+          const value = district[header as keyof typeof district];
+          // Add quotes around string values
+          return typeof value === 'string' ? `"${value}"` : value;
+        });
+        fileContent += row.join(',') + '\n';
+      });
+      
+      fileName = `district_crisis_report_${stateId}_${new Date().toISOString().split('T')[0]}.csv`;
+      fileType = 'text/csv';
+    }
+
+    // Create a blob and download link
+    const blob = new Blob([fileContent], { type: fileType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Report Downloaded",
+      description: `District crisis report downloaded in ${format.toUpperCase()} format`,
+    });
+  };
   
   return (
     <Card className="h-full">
@@ -83,6 +149,24 @@ export const DistrictCrisisMap: React.FC<DistrictCrisisMapProps> = ({
             District Crisis Report
           </CardTitle>
           <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Download size={14} className="mr-1" />
+                  Download
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => downloadData('json')}>
+                  <FileJson size={14} className="mr-2" />
+                  Download as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadData('csv')}>
+                  <FileText size={14} className="mr-2" />
+                  Download as CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="flex items-center rounded-md border p-1">
               <Button 
                 variant={sortBy === 'name' ? 'default' : 'ghost'} 
@@ -241,3 +325,4 @@ export const DistrictCrisisMap: React.FC<DistrictCrisisMapProps> = ({
     </Card>
   );
 };
+
