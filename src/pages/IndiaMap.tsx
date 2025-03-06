@@ -8,6 +8,7 @@ import { DistrictList } from '../components/DistrictList';
 import { getIndiaStatesData, IndiaStateData } from '../services/indiaDataService';
 import { StateSummaryCards } from '../components/StateSummaryCards';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DistrictCrisisMap } from '../components/DistrictCrisisMap';
 
 const IndiaMap: React.FC = () => {
   const [selectedState, setSelectedState] = useState<IndiaStateData | null>(null);
@@ -29,7 +30,7 @@ const IndiaMap: React.FC = () => {
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">India Economic Map</h1>
       <p className="text-muted-foreground">
-        Explore economic data across Indian states and districts. Click on a state to view detailed information.
+        Explore economic data and crisis indicators across Indian states and districts. Click on a state to view detailed information.
       </p>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -81,6 +82,12 @@ const IndiaMap: React.FC = () => {
                 </CardContent>
               </Card>
               
+              {/* Add the District Crisis Map component */}
+              <DistrictCrisisMap 
+                stateId={selectedState.id}
+                selectedDistrictId={selectedDistrictId}
+              />
+              
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle>Districts</CardTitle>
@@ -101,7 +108,7 @@ const IndiaMap: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Click on a state in the map to view detailed economic indicators and district information.
+                  Click on a state in the map to view detailed economic indicators, crisis levels, and district information.
                 </p>
                 <div className="space-y-4">
                   <div>
