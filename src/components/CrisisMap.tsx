@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Filter, Search, Map, BarChart3, AlertCircle, Twitter, RefreshCw, Hash, TrendingUp } from 'lucide-react';
+import { Filter, Search, Map, BarChart3, AlertCircle, Twitter, RefreshCw, Hash, TrendingUp, Users, Flag, MessageCircle } from 'lucide-react';
 import { fetchTwitterSentiment, TwitterSentiment } from '../services/twitterService';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -27,6 +27,16 @@ export const CrisisMap: React.FC = () => {
     { id: 6, lat: 18, lng: 73, type: 'social', severity: 'high', region: 'India' },
     { id: 7, lat: 31, lng: 121, type: 'social', severity: 'medium', region: 'China' },
     { id: 8, lat: -23, lng: -46, type: 'social', severity: 'high', region: 'Brazil' }
+  ];
+  
+  // Mock data for protest hashtags and indicators
+  const protestIndicators = [
+    { id: 1, hashtag: '#Protest', count: 1250, change: 35, region: 'Gujarat', lat: 22, lng: 72 },
+    { id: 2, hashtag: '#Strike', count: 980, change: -5, region: 'Maharashtra', lat: 19, lng: 76 },
+    { id: 3, hashtag: '#RallyForChange', count: 650, change: 22, region: 'Tamil Nadu', lat: 11, lng: 78 },
+    { id: 4, hashtag: '#Demonstration', count: 720, change: 15, region: 'Delhi', lat: 28, lng: 77 },
+    { id: 5, hashtag: '#CivilUnrest', count: 450, change: 60, region: 'West Bengal', lat: 22, lng: 88 },
+    { id: 6, hashtag: '#FarmersProtest', count: 1600, change: 70, region: 'Punjab', lat: 31, lng: 75 },
   ];
   
   // Fetch Twitter sentiment data on component mount
@@ -145,12 +155,72 @@ export const CrisisMap: React.FC = () => {
           );
         })}
         
+        {/* Protest Indicator Points - Only show when filter is 'social' or 'all' */}
+        {(activeFilter === 'social' || activeFilter === 'all') && protestIndicators.map(indicator => {
+          // Convert geo coordinates to screen coordinates (simplified)
+          const x = (indicator.lng + 180) / 360 * 100;
+          const y = (90 - indicator.lat) / 180 * 100;
+          
+          // Size based on hashtag frequency (normalized between 450-1600 counts)
+          const minCount = 450;
+          const maxCount = 1600;
+          const normalizedSize = 6 + ((indicator.count - minCount) / (maxCount - minCount)) * 10;
+          
+          // Color based on change percent
+          let color = '#3b82f6'; // default blue
+          if (indicator.change > 50) color = '#ef4444'; // high increase - red
+          else if (indicator.change > 20) color = '#f97316'; // medium increase - orange
+          else if (indicator.change > 0) color = '#eab308'; // low increase - yellow
+          else color = '#22c55e'; // decrease - green
+          
+          return (
+            <div 
+              key={indicator.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
+              style={{ 
+                left: `${x}%`, 
+                top: `${y}%`,
+              }}
+            >
+              {/* Hashtag indicator bubble */}
+              <div className="relative group">
+                <div 
+                  className="rounded-full flex items-center justify-center"
+                  style={{ 
+                    width: `${normalizedSize}px`, 
+                    height: `${normalizedSize}px`, 
+                    backgroundColor: color,
+                    border: '2px solid white',
+                  }}
+                >
+                  <Hash size={normalizedSize > 10 ? 10 : 8} className="text-white" />
+                </div>
+                
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30">
+                  <div className="font-medium text-sm">{indicator.hashtag}</div>
+                  <div className="flex justify-between items-center mt-1 text-xs">
+                    <span>Region: {indicator.region}</span>
+                    <span>Count: {indicator.count}</span>
+                  </div>
+                  <div className={`text-xs font-medium mt-1 flex items-center ${
+                    indicator.change > 0 ? "text-red-500" : "text-green-500"
+                  }`}>
+                    <TrendingUp size={10} className="mr-0.5" />
+                    {indicator.change > 0 ? '+' : ''}{indicator.change}% in 24h
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        
         {/* Map glow effects */}
         <div className="absolute inset-0 bg-gradient-to-t from-card/30 to-transparent pointer-events-none" />
       </div>
       
       {/* Legend */}
-      <div className="absolute bottom-4 right-4 glass-panel rounded-lg px-3 py-2 flex items-center gap-4">
+      <div className="absolute bottom-4 right-4 glass-panel rounded-lg px-3 py-2 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-crisis-high" />
           <span className="text-xs">High Risk</span>
@@ -163,6 +233,28 @@ export const CrisisMap: React.FC = () => {
           <div className="w-3 h-3 rounded-full bg-crisis-low" />
           <span className="text-xs">Low Risk</span>
         </div>
+        {(activeFilter === 'social' || activeFilter === 'all') && (
+          <>
+            <div className="w-full h-px bg-border/60 my-1" />
+            <div className="text-xs font-medium">Protest Hashtags:</div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <span className="text-xs">High Increase</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-orange-500" />
+              <span className="text-xs">Medium Increase</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-yellow-500" />
+              <span className="text-xs">Low Increase</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <span className="text-xs">Decreasing</span>
+            </div>
+          </>
+        )}
       </div>
       
       {/* Twitter Sentiment Panel */}
@@ -222,6 +314,77 @@ export const CrisisMap: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Protest Hashtags Panel - Only show when filter is 'social' or 'all' */}
+      {(activeFilter === 'social' || activeFilter === 'all') && (
+        <div className="absolute top-16 right-4 glass-panel rounded-lg p-3 w-64">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Flag size={14} className="text-primary" />
+            <span className="font-medium text-sm">Protest Indicators</span>
+          </div>
+          
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+            {protestIndicators.map((item) => (
+              <div key={item.id} className="bg-secondary/20 rounded p-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Hash size={12} className="text-blue-400" />
+                    <span className="text-xs font-medium">{item.hashtag}</span>
+                  </div>
+                  <Badge 
+                    variant={item.change > 50 ? 'high' : (item.change > 20 ? 'medium' : 'low')}
+                    className="text-[10px] px-1.5 py-0"
+                  >
+                    {item.change > 50 ? 'Critical' : (item.change > 20 ? 'Warning' : 'Stable')}
+                  </Badge>
+                </div>
+                
+                <div className="mt-1">
+                  <div className="flex justify-between items-center">
+                    <div className="text-[10px] text-muted-foreground">Region</div>
+                    <div className="text-xs">{item.region}</div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-[10px] text-muted-foreground">Mentions</div>
+                    <div className="text-xs font-medium">{item.count.toLocaleString()}</div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-[10px] text-muted-foreground">Trend</div>
+                    <div className={`text-xs font-medium flex items-center ${
+                      item.change > 20 ? "text-red-500" : "text-green-500"
+                    }`}>
+                      <TrendingUp size={10} className="mr-0.5" />
+                      {item.change > 0 ? '+' : ''}{item.change}%
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-2 w-full bg-background/50 rounded-full h-1.5">
+                  <div 
+                    className="h-1.5 rounded-full"
+                    style={{ 
+                      width: `${Math.min(100, (item.change / 100) * 100 + 50)}%`,
+                      backgroundColor: item.change > 50 ? '#ef4444' : item.change > 20 ? '#f97316' : '#22c55e'
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-3 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-1.5 text-xs">
+              <Users size={12} className="text-muted-foreground" />
+              <span className="text-muted-foreground">5,250 total protest mentions</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs mt-1">
+              <MessageCircle size={12} className="text-muted-foreground" />
+              <span className="text-muted-foreground">35% increase in the last 24h</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
