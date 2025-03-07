@@ -1,14 +1,20 @@
 
-import React, { useState } from 'react';
-import { Filter, Search, Map, BarChart3, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Filter, Search, Map, BarChart3, AlertCircle, Twitter, RefreshCw, Hash, TrendingUp } from 'lucide-react';
+import { fetchTwitterSentiment, TwitterSentiment } from '../services/twitterService';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 
 export const CrisisMap: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [twitterData, setTwitterData] = useState<TwitterSentiment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   const filters = [
     { id: 'all', label: 'All Crises', icon: <Map size={16} /> },
     { id: 'economic', label: 'Economic', icon: <BarChart3 size={16} /> },
     { id: 'disasters', label: 'Disasters', icon: <AlertCircle size={16} /> },
+    { id: 'social', label: 'Social Media', icon: <Twitter size={16} /> },
   ];
   
   // Mock data for crisis points
@@ -18,12 +24,45 @@ export const CrisisMap: React.FC = () => {
     { id: 3, lat: 35, lng: 139, type: 'economic', severity: 'medium', region: 'Asia' },
     { id: 4, lat: -33, lng: 151, type: 'disasters', severity: 'low', region: 'Australia' },
     { id: 5, lat: 52, lng: 13, type: 'economic', severity: 'medium', region: 'Europe' },
+    { id: 6, lat: 18, lng: 73, type: 'social', severity: 'high', region: 'India' },
+    { id: 7, lat: 31, lng: 121, type: 'social', severity: 'medium', region: 'China' },
+    { id: 8, lat: -23, lng: -46, type: 'social', severity: 'high', region: 'Brazil' }
   ];
+  
+  // Fetch Twitter sentiment data on component mount
+  useEffect(() => {
+    const fetchTwitterData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchTwitterSentiment();
+        setTwitterData(data);
+      } catch (error) {
+        console.error('Error fetching Twitter data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTwitterData();
+  }, []);
   
   // Filter crisis points
   const filteredPoints = activeFilter === 'all' 
     ? crisisPoints 
     : crisisPoints.filter(point => point.type === activeFilter);
+  
+  // Refresh Twitter data
+  const handleRefreshTwitter = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchTwitterSentiment();
+      setTwitterData(data);
+    } catch (error) {
+      console.error('Error refreshing Twitter data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <div className="w-full h-full rounded-xl overflow-hidden bg-card/80 backdrop-blur-md border border-border/60 relative">
@@ -124,6 +163,64 @@ export const CrisisMap: React.FC = () => {
           <div className="w-3 h-3 rounded-full bg-crisis-low" />
           <span className="text-xs">Low Risk</span>
         </div>
+      </div>
+      
+      {/* Twitter Sentiment Panel */}
+      <div className="absolute top-16 left-4 glass-panel rounded-lg p-3 w-64">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-1.5">
+            <Twitter size={14} className="text-primary" />
+            <span className="font-medium text-sm">Twitter Sentiment</span>
+          </div>
+          <Button size="icon" variant="ghost" onClick={handleRefreshTwitter} className="h-6 w-6">
+            <RefreshCw size={12} className={isLoading ? "animate-spin" : ""} />
+          </Button>
+        </div>
+        
+        {twitterData.length > 0 ? (
+          <div className="space-y-2">
+            {twitterData.map((item, index) => (
+              <div key={index} className="bg-secondary/20 rounded p-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    {item.platform === 'Twitter' ? (
+                      <Twitter size={12} className="text-blue-400" />
+                    ) : (
+                      <Hash size={12} className="text-blue-400" />
+                    )}
+                    <span className="text-xs">{item.platform}</span>
+                  </div>
+                  <Badge 
+                    variant={item.sentiment > -0.1 ? 'positive' : (item.sentiment > -0.3 ? 'neutral' : 'negative')}
+                    className="text-[10px] px-1.5 py-0"
+                  >
+                    {item.sentiment > -0.1 ? 'Positive' : (item.sentiment > -0.3 ? 'Neutral' : 'Negative')}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Volume</div>
+                    <div className="text-xs font-medium">{item.volume.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Change</div>
+                    <div className={`text-xs font-medium flex items-center ${
+                      item.change > 0 ? "text-green-500" : "text-red-500"
+                    }`}>
+                      <TrendingUp size={10} className="mr-0.5" />
+                      {item.change > 0 ? '+' : ''}{(item.change * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-2 text-xs text-muted-foreground">
+            {isLoading ? 'Loading sentiment data...' : 'No sentiment data available.'}
+          </div>
+        )}
       </div>
     </div>
   );
