@@ -9,11 +9,15 @@ import { getIndiaStatesData, IndiaStateData } from '../services/indiaDataService
 import { StateSummaryCards } from '../components/StateSummaryCards';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DistrictCrisisMap } from '../components/DistrictCrisisMap';
+import { CropYieldPredictionComponent } from '../components/CropYieldPrediction';
+import { DroughtCrisisPrediction } from '../components/DroughtCrisisPrediction';
+import { AlertTriangle, BarChart3, Droplet, Wheat } from 'lucide-react';
 
 const IndiaMap: React.FC = () => {
   const [selectedState, setSelectedState] = useState<IndiaStateData | null>(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [mapType, setMapType] = useState<'schematic' | 'real'>('real');
+  const [activeTab, setActiveTab] = useState<'economic' | 'crops' | 'drought'>('economic');
   
   const handleStateSelect = (stateId: string) => {
     const states = getIndiaStatesData();
@@ -30,7 +34,7 @@ const IndiaMap: React.FC = () => {
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">India Economic Map</h1>
       <p className="text-muted-foreground">
-        Explore economic data and crisis indicators across Indian states and districts. Click on a state to view detailed information.
+        Explore economic data, crisis indicators, crop yield predictions, and drought forecasts across Indian states and districts.
       </p>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -70,36 +74,73 @@ const IndiaMap: React.FC = () => {
             <>
               <StateSummaryCards state={selectedState} />
               
-              {/* Display the comprehensive District Crisis Report */}
-              <DistrictCrisisMap 
-                stateId={selectedState.id}
-                selectedDistrictId={selectedDistrictId}
-              />
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>Economic Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <StateEconomicDetails 
-                    stateId={selectedState.id} 
-                    stateName={selectedState.name}
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>Districts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DistrictList 
-                    stateId={selectedState.id} 
+              <Tabs 
+                defaultValue="economic" 
+                onValueChange={(value) => setActiveTab(value as 'economic' | 'crops' | 'drought')}
+                className="w-full"
+              >
+                <TabsList className="w-full">
+                  <TabsTrigger value="economic" className="flex-1">
+                    <BarChart3 size={14} className="mr-1" />
+                    Economy
+                  </TabsTrigger>
+                  <TabsTrigger value="crops" className="flex-1">
+                    <Wheat size={14} className="mr-1" />
+                    Crop Yield
+                  </TabsTrigger>
+                  <TabsTrigger value="drought" className="flex-1">
+                    <Droplet size={14} className="mr-1" />
+                    Drought
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="economic" className="mt-4 space-y-6">
+                  {/* Display the comprehensive District Crisis Report */}
+                  <DistrictCrisisMap 
+                    stateId={selectedState.id}
                     selectedDistrictId={selectedDistrictId}
-                    onDistrictSelect={handleDistrictSelect}
                   />
-                </CardContent>
-              </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle>Economic Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <StateEconomicDetails 
+                        stateId={selectedState.id} 
+                        stateName={selectedState.name}
+                      />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle>Districts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <DistrictList 
+                        stateId={selectedState.id} 
+                        selectedDistrictId={selectedDistrictId}
+                        onDistrictSelect={handleDistrictSelect}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="crops" className="mt-4 space-y-6">
+                  <CropYieldPredictionComponent 
+                    stateId={selectedState.id}
+                    districtId={selectedDistrictId || undefined}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="drought" className="mt-4 space-y-6">
+                  <DroughtCrisisPrediction 
+                    stateId={selectedState.id}
+                    districtId={selectedDistrictId || undefined}
+                  />
+                </TabsContent>
+              </Tabs>
             </>
           ) : (
             <Card>
@@ -108,7 +149,7 @@ const IndiaMap: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Click on a state in the map to view detailed economic indicators, crisis levels, and district information.
+                  Click on a state in the map to view detailed economic indicators, crisis levels, crop yield predictions, and drought forecasts.
                 </p>
                 <div className="space-y-4">
                   <div>
