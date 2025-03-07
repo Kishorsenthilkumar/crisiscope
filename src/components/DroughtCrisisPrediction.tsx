@@ -202,11 +202,12 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
                       <div className="col-span-7">
                         <div className="mb-2">
                           <div className="text-xs text-muted-foreground mb-1">Risk Assessment</div>
-                          <Progress 
-                            value={prediction.riskScore} 
-                            className="h-2"
-                            indicatorClassName={`${getSeverityBgColor(prediction.severity)}`}
-                          />
+                          <div className={`relative w-full h-2 bg-secondary rounded-full overflow-hidden`}>
+                            <div
+                              className={`h-full ${getSeverityBgColor(prediction.severity)} transition-all`}
+                              style={{ width: `${prediction.riskScore}%` }}
+                            />
+                          </div>
                           <div className="flex justify-between mt-1 text-xs">
                             <span>Low</span>
                             <span>Score: {prediction.riskScore}</span>
