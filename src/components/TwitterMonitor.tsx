@@ -85,7 +85,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
   };
   
   // Format date for display
-  const formatDate = (isoString: string) => {
+  const formatDate = (isoString: string | undefined) => {
     if (!isoString) return 'N/A';
     
     try {
@@ -105,9 +105,15 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
   };
   
   // Safely format numbers with toLocaleString
-  const formatNumber = (num: number | undefined): string => {
+  const formatNumber = (num: number | undefined | null): string => {
     if (num === undefined || num === null) return '0';
     return num.toLocaleString();
+  };
+  
+  // Safely format decimal numbers with toFixed
+  const formatFixed = (num: number | undefined | null, decimals: number = 2): string => {
+    if (num === undefined || num === null) return '0';
+    return num.toFixed(decimals);
   };
   
   // Refresh data
@@ -249,7 +255,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
               <div className="bg-secondary/30 rounded-lg p-4">
                 <div className="text-sm text-muted-foreground mb-1">Overall Sentiment</div>
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-3xl font-bold">{analysis.sentimentScore.toFixed(2)}</div>
+                  <div className="text-3xl font-bold">{formatFixed(analysis.sentimentScore)}</div>
                   <Badge variant={getSentimentBadge(analysis.sentimentScore)}>
                     {analysis.sentimentScore > 0.2 ? 'Positive' : 
                      analysis.sentimentScore < -0.2 ? 'Negative' : 'Neutral'}
@@ -261,7 +267,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                     analysis.sentimentChange > 0 ? "text-green-500" : 
                     analysis.sentimentChange < 0 ? "text-red-500" : ""
                   }`}>
-                    {analysis.sentimentChange > 0 ? '+' : ''}{analysis.sentimentChange.toFixed(2)} change
+                    {analysis.sentimentChange > 0 ? '+' : ''}{formatFixed(analysis.sentimentChange)} change
                   </span>
                 </div>
               </div>
@@ -360,11 +366,11 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
                           <Repeat size={12} />
-                          <span>{tweet.retweets || 0}</span>
+                          <span>{formatNumber(tweet.retweets)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <MessageCircle size={12} />
-                          <span>{tweet.likes || 0}</span>
+                          <span>{formatNumber(tweet.likes)}</span>
                         </div>
                         {tweet.isGeoTagged && (
                           <div className="flex items-center gap-1">
@@ -408,7 +414,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                         trend.hourlyChange > 0 ? "text-green-500" : 
                         trend.hourlyChange < 0 ? "text-red-500" : ""
                       }`}>
-                        {trend.hourlyChange > 0 ? '+' : ''}{(trend.hourlyChange || 0).toFixed(1)}%
+                        {trend.hourlyChange > 0 ? '+' : ''}{formatFixed(trend.hourlyChange, 1)}%
                       </div>
                     </div>
                   </div>
