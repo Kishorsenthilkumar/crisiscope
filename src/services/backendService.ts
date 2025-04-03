@@ -1,7 +1,6 @@
-
+import { supabase } from '@/integrations/supabase/client';
 import { twitterConfig, fredConfig, indiaDataConfig, mapboxConfig } from './apiConfig';
-
-const API_BASE_URL = 'https://your-backend-api.com'; // Replace with your actual backend URL
+import { fetchAPIKeys } from './apiKeysService';
 
 // Interface for API keys stored on backend
 export interface StoredAPIKeys {
@@ -11,52 +10,70 @@ export interface StoredAPIKeys {
   mapboxToken?: string;
 }
 
-// Store API keys securely on the backend
-export const storeAPIKeys = async (
-  userId: string,
-  keys: StoredAPIKeys
-): Promise<boolean> => {
+// Store API keys securely in Supabase
+export const storeAPIKeys = async (keys: StoredAPIKeys): Promise<boolean> => {
   try {
-    console.log('Storing API keys to backend for user:', userId);
+    const { data: user } = await supabase.auth.getUser();
     
-    // This would be an actual API call to your backend
-    // const response = await fetch(`${API_BASE_URL}/api/store-keys`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${userAccessToken}` // For user authentication
-    //   },
-    //   body: JSON.stringify({
-    //     userId,
-    //     keys
-    //   })
-    // });
-    // const data = await response.json();
-    // return data.success;
+    if (!user.user) {
+      throw new Error('No authenticated user found');
+    }
+
+    // Format keys according to Supabase schema
+    const apiKeys = {
+      user_id: user.user.id,
+      twitter_bearer_token: keys.twitterBearerToken,
+      fred_api_key: keys.fredApiKey,
+      india_data_api_key: keys.indiaDataApiKey,
+      mapbox_token: keys.mapboxToken,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Check if there's an existing record
+    const { data: existing } = await supabase
+      .from('api_keys')
+      .select('id')
+      .eq('user_id', user.user.id)
+      .maybeSingle();
+
+    if (existing?.id) {
+      // Update existing record
+      const { error } = await supabase
+        .from('api_keys')
+        .update(apiKeys)
+        .eq('id', existing.id);
+
+      if (error) {
+        console.error('Error updating API keys:', error);
+        return false;
+      }
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from('api_keys')
+        .insert([apiKeys]);
+
+      if (error) {
+        console.error('Error inserting API keys:', error);
+        return false;
+      }
+    }
     
-    // For now, we'll simulate a successful API call
-    // In a real implementation, remove this and uncomment the above code
-    console.log('Keys that would be sent to backend:', keys);
-    
-    // Also update local config so the app works while we transition to backend
+    // Also update local config so the app works immediately
     if (keys.twitterBearerToken) {
       twitterConfig.bearerToken = keys.twitterBearerToken;
-      localStorage.setItem('twitter_bearer_token', keys.twitterBearerToken);
     }
     
     if (keys.fredApiKey) {
       fredConfig.apiKey = keys.fredApiKey;
-      localStorage.setItem('fred_api_key', keys.fredApiKey);
     }
     
     if (keys.indiaDataApiKey) {
       indiaDataConfig.apiKey = keys.indiaDataApiKey;
-      localStorage.setItem('india_data_api_key', keys.indiaDataApiKey);
     }
     
     if (keys.mapboxToken) {
       mapboxConfig.accessToken = keys.mapboxToken;
-      localStorage.setItem('mapbox_token', keys.mapboxToken);
     }
     
     return true;
@@ -66,28 +83,27 @@ export const storeAPIKeys = async (
   }
 };
 
-// Fetch API keys from the backend
-export const fetchAPIKeys = async (userId: string): Promise<StoredAPIKeys | null> => {
+// Fetch API keys from Supabase
+export const fetchAPIKeys = async (): Promise<StoredAPIKeys | null> => {
   try {
-    console.log('Fetching API keys from backend for user:', userId);
+    const { data: user } = await supabase.auth.getUser();
     
-    // This would be an actual API call to your backend
-    // const response = await fetch(`${API_BASE_URL}/api/get-keys/${userId}`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${userAccessToken}` // For user authentication
-    //   }
-    // });
-    // const data = await response.json();
-    // return data.keys;
+    if (!user.user) {
+      console.error('No authenticated user found');
+      return null;
+    }
     
-    // For now, we'll simulate fetching keys from localStorage as a fallback
-    // In a real implementation, remove this and uncomment the above code
+    const keys = await fetchAPIKeys();
+    
+    if (!keys) {
+      return null;
+    }
+    
     return {
-      twitterBearerToken: localStorage.getItem('twitter_bearer_token') || '',
-      fredApiKey: localStorage.getItem('fred_api_key') || '',
-      indiaDataApiKey: localStorage.getItem('india_data_api_key') || '',
-      mapboxToken: localStorage.getItem('mapbox_token') || '',
+      twitterBearerToken: keys.twitter_bearer_token || '',
+      fredApiKey: keys.fred_api_key || '',
+      indiaDataApiKey: keys.india_data_api_key || '',
+      mapboxToken: keys.mapbox_token || '',
     };
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -95,18 +111,10 @@ export const fetchAPIKeys = async (userId: string): Promise<StoredAPIKeys | null
   }
 };
 
-// Utility functions to securely use API keys without exposing them to frontend
+// Utility functions for API proxying remain unchanged
 export const fetchWithTwitterAuth = async (endpoint: string, params: Record<string, string> = {}): Promise<any> => {
   try {
     // This would be an actual API call to your backend that uses the stored Twitter key
-    // const response = await fetch(`${API_BASE_URL}/api/twitter-proxy?endpoint=${encodeURIComponent(endpoint)}&${new URLSearchParams(params)}`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${userAccessToken}` // For user authentication
-    //   }
-    // });
-    // return await response.json();
-    
     // For testing, we'll return mock data
     return {
       data: [
@@ -123,14 +131,6 @@ export const fetchWithTwitterAuth = async (endpoint: string, params: Record<stri
 export const fetchWithFredAuth = async (seriesId: string, params: Record<string, string> = {}): Promise<any> => {
   try {
     // This would be an actual API call to your backend that uses the stored FRED key
-    // const response = await fetch(`${API_BASE_URL}/api/fred-proxy?seriesId=${encodeURIComponent(seriesId)}&${new URLSearchParams(params)}`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${userAccessToken}` // For user authentication
-    //   }
-    // });
-    // return await response.json();
-    
     // For testing, we'll return mock data
     return {
       data: [
@@ -146,17 +146,4 @@ export const fetchWithFredAuth = async (seriesId: string, params: Record<string,
   }
 };
 
-// Generate a random user ID for demo purposes
-// In a real app, this would come from authentication
-export const getUserId = (): string => {
-  // Check if we already have a user ID in localStorage
-  let userId = localStorage.getItem('demo_user_id');
-  
-  // If not, create one and store it
-  if (!userId) {
-    userId = `user_${Math.random().toString(36).substring(2, 15)}`;
-    localStorage.setItem('demo_user_id', userId);
-  }
-  
-  return userId;
-};
+// We don't need the getUserId function anymore since we get the user ID from Supabase
