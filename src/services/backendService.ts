@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { twitterConfig, fredConfig, indiaDataConfig, mapboxConfig } from './apiConfig';
-import { fetchAPIKeys } from './apiKeysService';
+import { fetchAPIKeys as fetchStoredAPIKeys } from './apiKeysService';
 
 // Interface for API keys stored on backend
 export interface StoredAPIKeys {
@@ -84,7 +84,7 @@ export const storeAPIKeys = async (keys: StoredAPIKeys): Promise<boolean> => {
 };
 
 // Fetch API keys from Supabase
-export const fetchAPIKeys = async (): Promise<StoredAPIKeys | null> => {
+export const getFormattedAPIKeys = async (): Promise<StoredAPIKeys | null> => {
   try {
     const { data: user } = await supabase.auth.getUser();
     
@@ -93,7 +93,7 @@ export const fetchAPIKeys = async (): Promise<StoredAPIKeys | null> => {
       return null;
     }
     
-    const keys = await fetchAPIKeys();
+    const keys = await fetchStoredAPIKeys();
     
     if (!keys) {
       return null;
@@ -145,5 +145,3 @@ export const fetchWithFredAuth = async (seriesId: string, params: Record<string,
     throw error;
   }
 };
-
-// We don't need the getUserId function anymore since we get the user ID from Supabase
