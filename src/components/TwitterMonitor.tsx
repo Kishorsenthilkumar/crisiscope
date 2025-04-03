@@ -39,7 +39,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
       try {
         const data = await fetchDistrictTwitterAnalysis(districtId, districtName);
         setAnalysis(data);
-        setFilteredTweets(data.recentTweets);
+        setFilteredTweets(data.recentTweets || []);
       } catch (error) {
         console.error('Error fetching Twitter analysis:', error);
       } finally {
@@ -55,16 +55,16 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
     if (!analysis) return;
     
     if (!searchQuery.trim()) {
-      setFilteredTweets(analysis.recentTweets);
+      setFilteredTweets(analysis.recentTweets || []);
       return;
     }
     
     const query = searchQuery.toLowerCase();
-    const filtered = analysis.recentTweets.filter(tweet => 
+    const filtered = (analysis.recentTweets || []).filter(tweet => 
       tweet.text.toLowerCase().includes(query) || 
       tweet.user.toLowerCase().includes(query) ||
       tweet.userHandle.toLowerCase().includes(query) ||
-      tweet.hashtags.some(tag => tag.toLowerCase().includes(query))
+      (tweet.hashtags && tweet.hashtags.some(tag => tag.toLowerCase().includes(query)))
     );
     
     setFilteredTweets(filtered);
@@ -86,8 +86,15 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
   
   // Format date for display
   const formatDate = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleString();
+    if (!isoString) return 'N/A';
+    
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
   
   // Get sentiment icon
@@ -97,13 +104,19 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
     return <Meh className="text-yellow-500" size={16} />;
   };
   
+  // Safely format numbers with toLocaleString
+  const formatNumber = (num: number | undefined): string => {
+    if (num === undefined || num === null) return '0';
+    return num.toLocaleString();
+  };
+  
   // Refresh data
   const handleRefresh = async () => {
     setIsLoading(true);
     try {
       const data = await fetchDistrictTwitterAnalysis(districtId, districtName);
       setAnalysis(data);
-      setFilteredTweets(data.recentTweets);
+      setFilteredTweets(data.recentTweets || []);
     } catch (error) {
       console.error('Error refreshing Twitter analysis:', error);
     } finally {
@@ -221,7 +234,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
               <div className="bg-secondary/30 rounded-lg p-4">
                 <div className="text-sm text-muted-foreground mb-1">Tweet Volume</div>
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-3xl font-bold">{analysis.tweetVolume.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{formatNumber(analysis.tweetVolume)}</div>
                   <TrendingUp 
                     size={24} 
                     className={analysis.sentimentChange > 0 ? "text-red-500" : "text-green-500"}
@@ -260,7 +273,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
               <div className="bg-secondary/30 rounded-lg p-4">
                 <div className="text-sm font-medium mb-3">Top Hashtags</div>
                 <div className="space-y-2">
-                  {analysis.topHashtags.map((hashtag, index) => (
+                  {(analysis.topHashtags || []).map((hashtag, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Hash size={14} className="text-primary" />
@@ -276,16 +289,16 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
               <div className="bg-secondary/30 rounded-lg p-4">
                 <div className="text-sm font-medium mb-3">Emotional Analysis</div>
                 <div className="space-y-2">
-                  {analysis.topEmotions.map((emotion, index) => (
+                  {(analysis.topEmotions || []).map((emotion, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">{emotion.emotion}</span>
-                        <span className="text-xs">{(emotion.intensity * 100).toFixed(0)}%</span>
+                        <span className="text-xs">{((emotion.intensity || 0) * 100).toFixed(0)}%</span>
                       </div>
                       <div className="w-full bg-secondary rounded-full h-1.5">
                         <div 
                           className="h-full rounded-full bg-primary"
-                          style={{ width: `${emotion.intensity * 100}%` }}
+                          style={{ width: `${(emotion.intensity || 0) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -338,7 +351,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                     <p className="mb-2">{tweet.text}</p>
                     
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {tweet.hashtags.map((tag, idx) => (
+                      {(tweet.hashtags || []).map((tag, idx) => (
                         <Badge key={idx} variant="secondary">{tag}</Badge>
                       ))}
                     </div>
@@ -347,11 +360,11 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
                           <Repeat size={12} />
-                          <span>{tweet.retweets}</span>
+                          <span>{tweet.retweets || 0}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <MessageCircle size={12} />
-                          <span>{tweet.likes}</span>
+                          <span>{tweet.likes || 0}</span>
                         </div>
                         {tweet.isGeoTagged && (
                           <div className="flex items-center gap-1">
@@ -360,7 +373,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                           </div>
                         )}
                       </div>
-                      <span>{new Date(tweet.timestamp).toLocaleString()}</span>
+                      <span>{formatDate(tweet.timestamp)}</span>
                     </div>
                   </div>
                 ))
@@ -371,7 +384,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
           {/* TRENDS TAB */}
           <TabsContent value="trends" className="p-6 mt-0">
             <div className="space-y-6">
-              {analysis.trends.map((trend, index) => (
+              {(analysis.trends || []).map((trend, index) => (
                 <div key={index} className="bg-secondary/30 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
@@ -387,7 +400,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Volume</div>
-                      <div className="text-lg font-medium">{trend.volume.toLocaleString()}</div>
+                      <div className="text-lg font-medium">{formatNumber(trend.volume)}</div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Hourly Change</div>
@@ -395,7 +408,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                         trend.hourlyChange > 0 ? "text-green-500" : 
                         trend.hourlyChange < 0 ? "text-red-500" : ""
                       }`}>
-                        {trend.hourlyChange > 0 ? '+' : ''}{trend.hourlyChange.toFixed(1)}%
+                        {trend.hourlyChange > 0 ? '+' : ''}{(trend.hourlyChange || 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -403,7 +416,7 @@ export const TwitterMonitor: React.FC<TwitterMonitorProps> = ({
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Related Terms</div>
                     <div className="flex flex-wrap gap-2">
-                      {trend.relatedTerms.map((term, idx) => (
+                      {(trend.relatedTerms || []).map((term, idx) => (
                         <Badge key={idx} variant="outline">{term}</Badge>
                       ))}
                     </div>
