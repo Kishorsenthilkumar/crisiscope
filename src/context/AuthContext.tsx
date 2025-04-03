@@ -81,22 +81,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({ 
+      
+      // Use the site URL as the redirect URL to ensure users return to the right place
+      const siteUrl = window.location.origin;
+      
+      const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: window.location.origin // Ensure redirect back to this site
+          emailRedirectTo: `${siteUrl}/auth?redirect=verification_success`
         }
       });
+      
       if (error) throw error;
       
-      toast({
-        title: "Sign up successful",
-        description: "Please check your email for verification link.",
-      });
+      // Show different toasts based on whether email confirmation is required
+      if (data.session) {
+        // User is immediately signed in (email confirmation disabled)
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to CrisisScope!",
+        });
+      } else {
+        // Email confirmation is required
+        toast({
+          title: "Verification email sent",
+          description: "Please check your email (and spam folder) for a verification link.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error signing up",

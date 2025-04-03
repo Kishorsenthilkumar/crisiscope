@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Globe2, LogIn, UserPlus } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
   const { user, isLoading, signIn, signUp } = useAuth();
@@ -17,6 +19,20 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  
+  const redirect = searchParams.get('redirect');
+  
+  useEffect(() => {
+    // Handle redirect parameters
+    if (redirect === 'verification_success') {
+      toast({
+        title: "Email verification successful",
+        description: "You can now sign in with your credentials",
+      });
+    }
+  }, [redirect, toast]);
 
   // Redirect if already logged in
   if (user && !isLoading) {
@@ -45,7 +61,7 @@ const Auth = () => {
     
     try {
       await signUp(email, password, fullName);
-      // We don't redirect here as the user needs to verify their email first
+      // Don't redirect - user will need to verify email first
     } catch (error) {
       console.error('Sign up error:', error);
     } finally {
@@ -68,6 +84,15 @@ const Auth = () => {
             </div>
           </div>
         </div>
+        
+        {redirect === 'verification_success' && (
+          <Alert className="mb-4 bg-green-50 border-green-200">
+            <AlertTitle className="text-green-800">Verification successful!</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Your email has been verified. You can now sign in with your credentials.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid grid-cols-2 mb-4">
@@ -172,6 +197,10 @@ const Auth = () => {
                   {authError && (
                     <div className="text-sm text-destructive">{authError}</div>
                   )}
+                  <div className="text-sm text-muted-foreground mt-2">
+                    <p>After signing up, you'll need to verify your email address.</p>
+                    <p>Please check your inbox (and spam folder) for the verification link.</p>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" className="w-full" disabled={isSubmitting || isLoading}>
