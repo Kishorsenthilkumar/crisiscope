@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CrisisMap } from '../components/CrisisMap';
 import { CrisisCard } from '../components/CrisisCard';
@@ -8,12 +9,16 @@ import { TrendChart } from '../components/TrendChart';
 import { EconomicIndicators } from '../components/EconomicIndicators';
 import { AIPredictions } from '../components/AIPredictions';
 import { AnomalyDetection } from '../components/AnomalyDetection';
-import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe, MapPin } from 'lucide-react';
+import { CrisisEmailAlert } from '../components/CrisisEmailAlert';
+import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe, MapPin, Mail } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { isTwitterConfigured, isFredConfigured, isIndiaDataConfigured } from '../services/apiConfig';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 const Dashboard: React.FC = () => {
+  const [showEmailAlert, setShowEmailAlert] = useState(false);
+
   useEffect(() => {
     console.log("Dashboard component mounted");
     
@@ -68,12 +73,30 @@ const Dashboard: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Crisis Management Dashboard</h1>
-        <Link to="/india-map">
-          <Button variant="outline" className="flex items-center gap-2">
-            <MapPin size={16} />
-            <span>India Economic Map</span>
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Dialog open={showEmailAlert} onOpenChange={setShowEmailAlert}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Mail size={16} />
+                <span>Send Crisis Alert</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <CrisisEmailAlert 
+                crisisType="economic" 
+                regionName="Southeast Asia" 
+                severity="high" 
+              />
+            </DialogContent>
+          </Dialog>
+          
+          <Link to="/india-map">
+            <Button variant="outline" className="flex items-center gap-2">
+              <MapPin size={16} />
+              <span>India Economic Map</span>
+            </Button>
+          </Link>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
