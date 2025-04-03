@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 type AuthContextType = {
   session: Session | null;
@@ -20,13 +21,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state change event:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        
+        // Handle redirects on sign in
+        if (event === 'SIGNED_IN' && currentSession) {
+          const redirectPath = localStorage.getItem('redirectPath') || '/';
+          localStorage.removeItem('redirectPath'); // Clear it after use
+          
+          // Use setTimeout to ensure state updates complete
+          setTimeout(() => {
+            navigate(redirectPath);
+            
+            toast({
+              title: "Logged in successfully",
+              description: `Welcome${currentSession.user?.user_metadata?.full_name ? ', ' + currentSession.user.user_metadata.full_name : ''}!`,
+            });
+          }, 0);
+        }
       }
     );
 
@@ -40,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [toast, navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -68,7 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             full_name: fullName,
-          }
+          },
+          emailRedirectTo: window.location.origin // Ensure redirect back to this site
         }
       });
       if (error) throw error;
@@ -94,6 +114,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Navigate to home page after sign out
+      navigate('/');
     } catch (error: any) {
       toast({
         title: "Error signing out",
