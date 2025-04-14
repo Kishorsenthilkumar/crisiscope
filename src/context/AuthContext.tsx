@@ -54,6 +54,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
+    }).catch(error => {
+      console.error("Error getting session:", error);
+      setIsLoading(false);
     });
 
     return () => {
@@ -67,9 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error: any) {
+      const errorMessage = error.message || "Network error. Please check your connection and try again.";
+      
       toast({
         title: "Error signing in",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
@@ -113,9 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
+      const errorMessage = error.message || "Network error. Please check your connection and try again.";
+      
       toast({
         title: "Error signing up",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;

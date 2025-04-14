@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe2, LogIn, UserPlus } from 'lucide-react';
+import { Globe2, LogIn, UserPlus, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -18,6 +18,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -32,6 +33,18 @@ const Auth = () => {
         description: "You can now sign in with your credentials",
       });
     }
+    
+    // Monitor online status
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [redirect, toast]);
 
   // Redirect if already logged in
@@ -47,8 +60,15 @@ const Auth = () => {
     try {
       await signIn(email, password);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      if (!navigator.onLine) {
+        setAuthError("Network error: You're offline. Please check your internet connection.");
+      } else if (error.message) {
+        setAuthError(error.message);
+      } else {
+        setAuthError("Failed to connect to authentication service. Please try again later.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -62,8 +82,15 @@ const Auth = () => {
     try {
       await signUp(email, password, fullName);
       // Don't redirect - user will need to verify email first
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      if (!navigator.onLine) {
+        setAuthError("Network error: You're offline. Please check your internet connection.");
+      } else if (error.message) {
+        setAuthError(error.message);
+      } else {
+        setAuthError("Failed to connect to authentication service. Please try again later.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +111,16 @@ const Auth = () => {
             </div>
           </div>
         </div>
+        
+        {!isOnline && (
+          <Alert className="mb-4 bg-amber-50 border-amber-200">
+            <WifiOff className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">You're offline</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Please check your internet connection to sign in or sign up.
+            </AlertDescription>
+          </Alert>
+        )}
         
         {redirect === 'verification_success' && (
           <Alert className="mb-4 bg-green-50 border-green-200">
@@ -139,11 +176,15 @@ const Auth = () => {
                     />
                   </div>
                   {authError && (
-                    <div className="text-sm text-destructive">{authError}</div>
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Authentication Error</AlertTitle>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isSubmitting || isLoading}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || isLoading || !isOnline}>
                     {isSubmitting ? 'Signing In...' : 'Sign In'}
                   </Button>
                 </CardFooter>
@@ -195,7 +236,11 @@ const Auth = () => {
                     />
                   </div>
                   {authError && (
-                    <div className="text-sm text-destructive">{authError}</div>
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Authentication Error</AlertTitle>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
                   )}
                   <div className="text-sm text-muted-foreground mt-2">
                     <p>After signing up, you'll need to verify your email address.</p>
@@ -203,7 +248,7 @@ const Auth = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isSubmitting || isLoading}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || isLoading || !isOnline}>
                     {isSubmitting ? 'Creating Account...' : 'Sign Up'}
                   </Button>
                 </CardFooter>
