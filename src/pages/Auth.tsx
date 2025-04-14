@@ -24,6 +24,13 @@ const Auth = () => {
   const { toast } = useToast();
   
   const redirect = searchParams.get('redirect');
+  const signupSuccess = searchParams.get('signup');
+  
+  // Set the initial tab based on the URL parameter
+  const [activeTab, setActiveTab] = useState(() => {
+    // Default to signin, but if we have signup=success, show signup tab
+    return searchParams.get('signup') ? 'signup' : 'signin';
+  });
   
   useEffect(() => {
     // Handle redirect parameters
@@ -33,7 +40,14 @@ const Auth = () => {
         description: "You can now sign in with your credentials",
       });
     }
-  }, [redirect, toast]);
+    
+    if (signupSuccess === 'success') {
+      toast({
+        title: "Account created",
+        description: "Please check your email for a verification link before signing in",
+      });
+    }
+  }, [redirect, signupSuccess, toast]);
 
   // Redirect if already logged in
   if (user && !isLoading) {
@@ -95,7 +109,7 @@ const Auth = () => {
     
     try {
       await signUp(email, password, fullName);
-      // Don't redirect - user will need to verify email first
+      // Don't redirect - signUp function will handle navigation when appropriate
     } catch (error: any) {
       console.error('Sign up error:', error);
       if (!navigator.onLine) {
@@ -166,7 +180,16 @@ const Auth = () => {
           </Alert>
         )}
         
-        <Tabs defaultValue="signin" className="w-full">
+        {signupSuccess === 'success' && (
+          <Alert className="mb-4 bg-green-50 border-green-200">
+            <AlertTitle className="text-green-800">Account created!</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Please check your email for a verification link before signing in.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-2 mb-4">
             <TabsTrigger value="signin">
               <LogIn className="mr-2 h-4 w-4" />

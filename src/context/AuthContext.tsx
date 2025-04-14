@@ -121,6 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsLoading(true);
       
+      // Check if user already exists before attempting to sign up
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error("Error checking existing user:", checkError);
+        // Proceed with sign up even if we can't check, Supabase will handle duplicates
+      } else if (existingUsers) {
+        throw new Error("A user with this email already exists. Please sign in instead.");
+      }
+      
       // Use the site URL as the redirect URL to ensure users return to the right place
       const siteUrl = window.location.origin;
       
@@ -150,6 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Verification email sent",
           description: "Please check your email (and spam folder) for a verification link.",
         });
+        
+        // Explicitly navigate to auth page with a message
+        navigate('/auth?signup=success');
       }
     } catch (error: any) {
       let errorMessage = "";
