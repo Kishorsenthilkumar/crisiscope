@@ -7,18 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe2, LogIn, UserPlus, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { Globe2, LogIn, UserPlus, AlertTriangle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
-  const { user, isLoading, signIn, signUp } = useAuth();
+  const { user, isLoading, isOnline, signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isNetworkTesting, setIsNetworkTesting] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -33,24 +33,36 @@ const Auth = () => {
         description: "You can now sign in with your credentials",
       });
     }
-    
-    // Monitor online status
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
   }, [redirect, toast]);
 
   // Redirect if already logged in
   if (user && !isLoading) {
     return <Navigate to="/" />;
   }
+
+  const testConnection = async () => {
+    setIsNetworkTesting(true);
+    try {
+      const response = await fetch('https://www.google.com/favicon.ico', { 
+        mode: 'no-cors',
+        cache: 'no-store',
+        method: 'HEAD'
+      });
+      // If we get here, we have internet but maybe Supabase is down
+      toast({
+        title: "Internet connection detected",
+        description: "You have an internet connection, but the authentication service might be unavailable. Please try again later.",
+      });
+    } catch (error) {
+      toast({
+        title: "Network test failed",
+        description: "No internet connection detected. Please check your network settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsNetworkTesting(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +76,8 @@ const Auth = () => {
       console.error('Sign in error:', error);
       if (!navigator.onLine) {
         setAuthError("Network error: You're offline. Please check your internet connection.");
+      } else if (error.message === "Failed to fetch") {
+        setAuthError("Failed to connect to authentication service. Please check your connection or try again later.");
       } else if (error.message) {
         setAuthError(error.message);
       } else {
@@ -86,6 +100,8 @@ const Auth = () => {
       console.error('Sign up error:', error);
       if (!navigator.onLine) {
         setAuthError("Network error: You're offline. Please check your internet connection.");
+      } else if (error.message === "Failed to fetch") {
+        setAuthError("Failed to connect to authentication service. Please check your connection or try again later.");
       } else if (error.message) {
         setAuthError(error.message);
       } else {
@@ -116,8 +132,27 @@ const Auth = () => {
           <Alert className="mb-4 bg-amber-50 border-amber-200">
             <WifiOff className="h-4 w-4 text-amber-600" />
             <AlertTitle className="text-amber-800">You're offline</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              Please check your internet connection to sign in or sign up.
+            <AlertDescription className="text-amber-700 flex flex-col gap-3">
+              <span>Please check your internet connection to sign in or sign up.</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={testConnection}
+                disabled={isNetworkTesting}
+                className="w-full sm:w-auto"
+              >
+                {isNetworkTesting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Testing connection...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Test connection
+                  </>
+                )}
+              </Button>
             </AlertDescription>
           </Alert>
         )}

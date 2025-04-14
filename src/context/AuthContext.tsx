@@ -9,6 +9,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
+  isOnline: boolean; // New property to track online status
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,8 +21,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // First set up the auth state listener
@@ -66,11 +82,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      // First check if we're online
+      if (!navigator.onLine) {
+        throw new Error("You appear to be offline. Please check your internet connection and try again.");
+      }
+      
       setIsLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error: any) {
-      const errorMessage = error.message || "Network error. Please check your connection and try again.";
+      let errorMessage = "";
+      
+      if (!navigator.onLine) {
+        errorMessage = "You're offline. Please check your internet connection and try again.";
+      } else if (error.message === "Failed to fetch") {
+        errorMessage = "Connection to authentication service failed. This could be due to network issues or the service being temporarily unavailable.";
+      } else {
+        errorMessage = error.message || "Authentication failed. Please try again later.";
+      }
       
       toast({
         title: "Error signing in",
@@ -85,6 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      // First check if we're online
+      if (!navigator.onLine) {
+        throw new Error("You appear to be offline. Please check your internet connection and try again.");
+      }
+      
       setIsLoading(true);
       
       // Use the site URL as the redirect URL to ensure users return to the right place
@@ -118,7 +152,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
-      const errorMessage = error.message || "Network error. Please check your connection and try again.";
+      let errorMessage = "";
+      
+      if (!navigator.onLine) {
+        errorMessage = "You're offline. Please check your internet connection and try again.";
+      } else if (error.message === "Failed to fetch") {
+        errorMessage = "Connection to authentication service failed. This could be due to network issues or the service being temporarily unavailable.";
+      } else {
+        errorMessage = error.message || "Sign up failed. Please try again later.";
+      }
       
       toast({
         title: "Error signing up",
@@ -133,6 +175,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      if (!navigator.onLine) {
+        toast({
+          title: "Error signing out",
+          description: "You're offline. Some functionality may be limited until you reconnect.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -151,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, user, isLoading, isOnline, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
