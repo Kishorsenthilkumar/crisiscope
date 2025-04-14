@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, AlertTriangle, Send } from "lucide-react";
+import { Mail, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from '@/integrations/supabase/client';
 
 interface CrisisEmailAlertProps {
   crisisType?: 'drought' | 'economic' | 'political' | 'social' | 'other';
@@ -20,6 +22,7 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   regionName = 'Selected Region',
   severity = 'medium'
 }) => {
+  const { isOnline } = useAuth();
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState(`${severity.toUpperCase()} ${crisisType} Crisis Alert for ${regionName}`);
   const [message, setMessage] = useState(`This is an automated alert regarding the ${severity} level ${crisisType} crisis situation developing in ${regionName}. Please take appropriate action.`);
@@ -58,6 +61,15 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   
   // Handle send alert
   const handleSendAlert = async () => {
+    if (!isOnline) {
+      toast({
+        title: "You're offline",
+        description: "Cannot send emails while offline. Please check your connection.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!email || !validateEmail(email)) {
       setEmailValid(false);
       toast({
@@ -80,24 +92,28 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Log alert details
-      console.log('Crisis Alert Details:', {
-        email,
-        subject,
-        message,
-        recipients: {
-          authorities: sendToAuthorities,
-          ngos: sendToNGOs,
-          media: sendToMedia
-        },
-        crisisType,
-        regionName,
-        severity,
-        timestamp: new Date().toISOString()
+      // Send the email using the Supabase edge function
+      const { data, error } = await supabase.functions.invoke('send-crisis-alert', {
+        body: {
+          email,
+          subject,
+          message,
+          recipients: {
+            authorities: sendToAuthorities,
+            ngos: sendToNGOs,
+            media: sendToMedia
+          },
+          crisisType,
+          regionName,
+          severity
+        }
       });
+      
+      if (error) {
+        throw new Error(`Failed to send email: ${error.message}`);
+      }
+      
+      console.log('Crisis Alert Email Response:', data);
       
       // Show success message
       toast({
@@ -105,15 +121,14 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
         description: `Crisis alert has been dispatched to ${email}`,
       });
       
-      // Reset form state (except pre-filled values)
-      setIsLoading(false);
     } catch (error) {
       console.error('Error sending alert:', error);
       toast({
         title: "Failed to send alert",
-        description: "An error occurred while sending the alert",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -218,6 +233,13 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
             </div>
           </div>
         </div>
+        
+        {!isOnline && (
+          <div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            <span>You appear to be offline. Email alerts can't be sent until your connection is restored.</span>
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="flex justify-between border-t pt-4 pb-3">
@@ -227,10 +249,19 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
         </div>
         <Button
           onClick={handleSendAlert}
-          disabled={isLoading}
+          disabled={isLoading || !isOnline}
         >
-          <Send className="mr-2 h-4 w-4" />
-          {isLoading ? "Sending..." : "Send Alert"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send Alert
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>

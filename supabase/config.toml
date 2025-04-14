@@ -1,1 +1,5 @@
+
 project_id = "kwwxpnayqiuamosfacde"
+
+[functions.send-crisis-alert]
+verify_jwt = false

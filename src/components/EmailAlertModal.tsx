@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, FileDown, Bell } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Mail, FileDown, Bell, Loader2, AlertTriangle } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 import { DroughtPrediction } from '../services/predictionService';
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from '@/integrations/supabase/client';
 
 interface EmailAlertModalProps {
   isOpen: boolean;
@@ -31,12 +33,14 @@ export const EmailAlertModal: React.FC<EmailAlertModalProps> = ({
   stateId,
   stateName
 }) => {
+  const { isOnline } = useAuth();
   const [email, setEmail] = useState('');
   const [emailValid, setEmailValid] = useState(true);
   const [includeHighRisk, setIncludeHighRisk] = useState(true);
   const [includeExtremeRisk, setIncludeExtremeRisk] = useState(true);
   const [includeMediumRisk, setIncludeMediumRisk] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'immediate'>('weekly');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Email validation function
   const validateEmail = (email: string) => {
@@ -52,7 +56,16 @@ export const EmailAlertModal: React.FC<EmailAlertModalProps> = ({
   };
 
   // Handle subscribe button click
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
+    if (!isOnline) {
+      toast({
+        title: "You're offline",
+        description: "Cannot send emails while offline. Please check your connection.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!email || !emailValid) {
       toast({
         title: "Invalid email",
@@ -62,25 +75,78 @@ export const EmailAlertModal: React.FC<EmailAlertModalProps> = ({
       return;
     }
 
-    // Log the subscription details
-    console.log("Email Alert Subscription:", {
-      email,
-      stateId,
-      stateName,
-      includeHighRisk,
-      includeExtremeRisk,
-      includeMediumRisk,
-      frequency
-    });
+    setIsLoading(true);
+    
+    try {
+      // Filter predictions based on selected risk levels
+      const filteredPredictions = predictions.filter(p => {
+        if (p.severity === 'extreme' && includeExtremeRisk) return true;
+        if (p.severity === 'high' && includeHighRisk) return true;
+        if (p.severity === 'medium' && includeMediumRisk) return true;
+        return false;
+      });
+      
+      // Create prediction summary for email
+      const highRiskDistricts = filteredPredictions
+        .filter(p => p.severity === 'high' || p.severity === 'extreme')
+        .map(p => p.districtName)
+        .join(', ');
+      
+      // Create email message
+      const subject = `Drought Alert Subscription: ${stateName} - ${frequency.charAt(0).toUpperCase() + frequency.slice(1)} Updates`;
+      
+      const message = `You have subscribed to ${frequency} drought alert updates for ${stateName}.
+      
+Risk Levels Included:
+${includeExtremeRisk ? '- Extreme Risk Districts' : ''}
+${includeHighRisk ? '- High Risk Districts' : ''}
+${includeMediumRisk ? '- Medium Risk Districts' : ''}
 
-    // Show success toast
-    toast({
-      title: "Subscription successful!",
-      description: `You will receive ${frequency} drought alerts for ${stateName} at ${email}`,
-    });
+Current High Risk Areas: ${highRiskDistricts || 'None'}
 
-    // Close the modal
-    onClose();
+You will receive ${frequency} updates about changing drought conditions in this region.`;
+
+      // Send subscription confirmation email
+      const { data, error } = await supabase.functions.invoke('send-crisis-alert', {
+        body: {
+          email,
+          subject,
+          message,
+          recipients: {
+            authorities: false,
+            ngos: false,
+            media: false
+          },
+          crisisType: 'drought',
+          regionName: stateName,
+          severity: 'medium'
+        }
+      });
+      
+      if (error) {
+        throw new Error(`Failed to send email: ${error.message}`);
+      }
+      
+      console.log("Subscription Email Response:", data);
+      
+      // Show success toast
+      toast({
+        title: "Subscription successful!",
+        description: `You will receive ${frequency} drought alerts for ${stateName} at ${email}`,
+      });
+
+      // Close the modal
+      onClose();
+    } catch (error) {
+      console.error('Error subscribing to alerts:', error);
+      toast({
+        title: "Subscription failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Generate CSV for download
@@ -228,6 +294,13 @@ export const EmailAlertModal: React.FC<EmailAlertModalProps> = ({
               </Button>
             </div>
           </div>
+          
+          {!isOnline && (
+            <div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>You appear to be offline. Email alerts can't be sent until your connection is restored.</span>
+            </div>
+          )}
         </div>
         
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -239,9 +312,21 @@ export const EmailAlertModal: React.FC<EmailAlertModalProps> = ({
             <FileDown className="mr-2 h-4 w-4" />
             Download Report
           </Button>
-          <Button onClick={handleSubscribe} type="submit">
-            <Mail className="mr-2 h-4 w-4" />
-            Subscribe
+          <Button 
+            onClick={handleSubscribe} 
+            disabled={isLoading || !isOnline}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Mail className="mr-2 h-4 w-4" />
+                Subscribe
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
