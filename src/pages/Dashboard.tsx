@@ -9,7 +9,7 @@ import { TrendChart } from '../components/TrendChart';
 import { EconomicIndicators } from '../components/EconomicIndicators';
 import { AIPredictions } from '../components/AIPredictions';
 import { AnomalyDetection } from '../components/AnomalyDetection';
-import { CrisisEmailAlert } from '../components/CrisisEmailAlert';
+import { CrisisEmailAlert } from '../components/crisis-alert';
 import { BarChart3, TrendingDown, TrendingUp, AlertCircle, Users, Globe, MapPin, Mail } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
