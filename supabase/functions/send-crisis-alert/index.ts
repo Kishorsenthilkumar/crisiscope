@@ -27,7 +27,7 @@ interface CrisisAlertRequest {
   crisisType: string;
   regionName: string;
   severity: string;
-  // New SMS-related fields
+  // SMS-related fields
   sendSms: boolean;
   phoneNumbers: string[];
   smsRecipients: {
@@ -124,13 +124,13 @@ const handler = async (req: Request): Promise<Response> => {
       const smsNumberList = [...phoneNumbers]; // Start with provided numbers
       
       // Add mock numbers for organization types based on selections
-      if (smsRecipients.authorities) {
+      if (smsRecipients?.authorities) {
         smsNumberList.push("+18005551234"); // Mock authority number
       }
-      if (smsRecipients.ngos) {
+      if (smsRecipients?.ngos) {
         smsNumberList.push("+18005555678"); // Mock NGO number
       }
-      if (smsRecipients.media) {
+      if (smsRecipients?.media) {
         smsNumberList.push("+18005559012"); // Mock media number
       }
       
