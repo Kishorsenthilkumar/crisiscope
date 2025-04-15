@@ -5,10 +5,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { CrisisType, SeverityLevel, ActiveTab, EmailFormData, SmsFormData } from './types';
 import { validateEmail, validatePhone } from './utils';
 
+interface AlertResponse {
+  email: any;
+  sms: {
+    sent: boolean;
+    configured: boolean;
+    responses: any[];
+    twilioPhone: string | null;
+  } | null;
+}
+
 export const useCrisisAlert = (
   crisisType: CrisisType,
   regionName: string,
-  severity: SeverityLevel
+  severity: SeverityLevel,
+  onAlertSent?: (response: AlertResponse) => void
 ) => {
   // Tab state
   const [activeTab, setActiveTab] = useState<ActiveTab>("email");
@@ -171,11 +182,33 @@ export const useCrisisAlert = (
       
       console.log('Crisis Alert Response:', data);
       
-      // Show success message
-      toast({
-        title: "Alerts sent successfully",
-        description: `Crisis alert has been dispatched via ${smsFormData.enableSms ? 'email and SMS' : 'email'}`,
-      });
+      // Call the callback with the response if provided
+      if (onAlertSent && data) {
+        onAlertSent(data as AlertResponse);
+      }
+      
+      // Show different success messages based on SMS status
+      if (data?.sms?.sent) {
+        toast({
+          title: "Alerts sent successfully",
+          description: "Crisis alert has been dispatched via email and SMS",
+        });
+      } else if (data?.sms && !data.sms.configured && smsFormData.enableSms) {
+        toast({
+          title: "Email sent, SMS failed",
+          description: "Twilio is not properly configured. Only email was sent.",
+        });
+      } else if (smsFormData.enableSms) {
+        toast({
+          title: "Email sent, SMS issue",
+          description: "There was an issue sending SMS alerts. Check the logs for details.",
+        });
+      } else {
+        toast({
+          title: "Email alert sent",
+          description: "Crisis alert email has been dispatched successfully.",
+        });
+      }
       
     } catch (error) {
       console.error('Error sending alert:', error);
@@ -202,6 +235,7 @@ export const useCrisisAlert = (
     handlePhoneChange,
     addPhoneNumber,
     removePhoneNumber,
-    handleSendAlert
+    handleSendAlert,
+    onAlertSent
   };
 };

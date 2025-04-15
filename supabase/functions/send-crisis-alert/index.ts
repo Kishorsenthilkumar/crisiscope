@@ -8,15 +8,21 @@ const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
 const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
 
-// Check if the accountSid starts with "AC" as required by Twilio
+// Improved Twilio client initialization with better error handling
 let twilioClient = null;
-if (accountSid && authToken && accountSid.startsWith('AC')) {
-  try {
-    twilioClient = Twilio(accountSid, authToken);
-    console.log("Twilio client initialized successfully");
-  } catch (error) {
-    console.error("Error initializing Twilio client:", error);
+try {
+  if (accountSid && authToken && twilioPhoneNumber) {
+    if (accountSid.startsWith('AC')) {
+      twilioClient = Twilio(accountSid, authToken);
+      console.log("Twilio client initialized successfully");
+    } else {
+      console.error("Invalid Twilio Account SID format - must start with 'AC'");
+    }
+  } else {
+    console.log("Twilio credentials missing - SMS functionality will be disabled");
   }
+} catch (error) {
+  console.error("Error initializing Twilio client:", error);
 }
 
 const corsHeaders = {
@@ -132,11 +138,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send SMS alerts if enabled and Twilio is configured
     let smsResponses = [];
+    let twilioConfigured = !!twilioClient && !!twilioPhoneNumber;
+    
     if (sendSms) {
-      console.log("SMS sending requested. Twilio client available:", !!twilioClient);
+      console.log("SMS sending requested. Twilio client available:", twilioConfigured);
       
-      if (twilioClient) {
-        console.log("Sending SMS alerts");
+      if (twilioConfigured) {
+        console.log("Sending SMS alerts with phone number:", twilioPhoneNumber);
         
         // Create SMS recipient list
         const smsNumberList = [...phoneNumbers]; // Start with provided numbers
@@ -158,6 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Send SMS messages
         for (const number of smsNumberList) {
           try {
+            console.log(`Attempting to send SMS to ${number} from ${twilioPhoneNumber}`);
             const smsResponse = await twilioClient.messages.create({
               body: smsText,
               to: number,
@@ -179,16 +188,27 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
       } else {
-        console.warn("SMS sending was requested but Twilio is not configured correctly");
-        smsResponses = [{ status: "error", message: "Twilio not configured correctly" }];
+        const missingConfigs = [];
+        if (!accountSid) missingConfigs.push("TWILIO_ACCOUNT_SID");
+        if (!authToken) missingConfigs.push("TWILIO_AUTH_TOKEN");
+        if (!twilioPhoneNumber) missingConfigs.push("TWILIO_PHONE_NUMBER");
+        
+        const errorMessage = missingConfigs.length > 0 
+          ? `Missing Twilio configuration: ${missingConfigs.join(", ")}`
+          : "Twilio not configured correctly";
+          
+        console.warn(`SMS sending was requested but ${errorMessage}`);
+        smsResponses = [{ status: "error", message: errorMessage }];
       }
     }
 
     return new Response(JSON.stringify({ 
       email: emailResponse,
       sms: sendSms ? { 
-        sent: twilioClient !== null,
-        responses: smsResponses 
+        sent: twilioConfigured,
+        configured: twilioConfigured,
+        responses: smsResponses,
+        twilioPhone: twilioPhoneNumber ? twilioPhoneNumber.substring(0, 4) + "..." : null
       } : null 
     }), {
       status: 200,

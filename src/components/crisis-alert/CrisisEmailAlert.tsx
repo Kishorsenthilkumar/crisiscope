@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ import { getSeverityColor } from './utils';
 import { EmailForm } from './EmailForm';
 import { SmsForm } from './SmsForm';
 import { OfflineWarning } from './OfflineWarning';
+import { TwilioStatus } from './TwilioStatus';
 import { useCrisisAlert } from './useCrisisAlert';
 
 export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({ 
@@ -25,6 +26,9 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   severity = 'medium'
 }) => {
   const { isOnline } = useAuth();
+  const [twilioConfigured, setTwilioConfigured] = useState<boolean>(false);
+  const [showTwilioStatus, setShowTwilioStatus] = useState<boolean>(false);
+  
   const {
     activeTab,
     setActiveTab,
@@ -38,8 +42,15 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     handlePhoneChange,
     addPhoneNumber,
     removePhoneNumber,
-    handleSendAlert
-  } = useCrisisAlert(crisisType, regionName, severity);
+    handleSendAlert,
+    onAlertSent
+  } = useCrisisAlert(crisisType, regionName, severity, (response) => {
+    // Check if Twilio is configured from the response
+    if (response?.sms) {
+      setTwilioConfigured(response.sms.configured || false);
+      setShowTwilioStatus(!response.sms.configured);
+    }
+  });
 
   return (
     <Card className="shadow-md w-full max-w-lg mx-auto">
@@ -68,6 +79,10 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
         </div>
         
         <CardContent className="pt-4 space-y-4">
+          {showTwilioStatus && activeTab === "sms" && (
+            <TwilioStatus isConfigured={twilioConfigured} />
+          )}
+        
           <TabsContent value="email" className="space-y-4 mt-0">
             <EmailForm 
               formData={emailFormData}
