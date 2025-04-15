@@ -7,7 +7,17 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
 const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
-const twilioClient = accountSid && authToken ? Twilio(accountSid, authToken) : null;
+
+// Check if the accountSid starts with "AC" as required by Twilio
+let twilioClient = null;
+if (accountSid && authToken && accountSid.startsWith('AC')) {
+  try {
+    twilioClient = Twilio(accountSid, authToken);
+    console.log("Twilio client initialized successfully");
+  } catch (error) {
+    console.error("Error initializing Twilio client:", error);
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,63 +116,72 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending crisis alert email to:", recipientList);
     
     // Send email alert
-    const emailResponse = await resend.emails.send({
-      from: "Crisis Alerts <notifications@resend.dev>",
-      to: recipientList,
-      subject: subject,
-      html: htmlContent,
-    });
-
-    console.log("Email response:", emailResponse);
+    let emailResponse = null;
+    try {
+      emailResponse = await resend.emails.send({
+        from: "Crisis Alerts <notifications@resend.dev>",
+        to: recipientList,
+        subject: subject,
+        html: htmlContent,
+      });
+      console.log("Email response:", emailResponse);
+    } catch (emailError) {
+      console.error("Error sending email:", emailError);
+      emailResponse = { error: emailError.message || "Failed to send email" };
+    }
 
     // Send SMS alerts if enabled and Twilio is configured
     let smsResponses = [];
-    if (sendSms && twilioClient) {
-      console.log("Sending SMS alerts");
+    if (sendSms) {
+      console.log("SMS sending requested. Twilio client available:", !!twilioClient);
       
-      // Create SMS recipient list
-      const smsNumberList = [...phoneNumbers]; // Start with provided numbers
-      
-      // Add mock numbers for organization types based on selections
-      if (smsRecipients?.authorities) {
-        smsNumberList.push("+18005551234"); // Mock authority number
-      }
-      if (smsRecipients?.ngos) {
-        smsNumberList.push("+18005555678"); // Mock NGO number
-      }
-      if (smsRecipients?.media) {
-        smsNumberList.push("+18005559012"); // Mock media number
-      }
-      
-      // Format a simpler message for SMS
-      const smsText = `CRISIS ALERT (${severity.toUpperCase()}): ${crisisType} crisis in ${regionName}. ${message.substring(0, 100)}${message.length > 100 ? '...' : ''} - CrisisScope`;
-      
-      // Send SMS messages
-      for (const number of smsNumberList) {
-        try {
-          const smsResponse = await twilioClient.messages.create({
-            body: smsText,
-            to: number,
-            from: twilioPhoneNumber,
-          });
-          smsResponses.push({
-            to: number,
-            status: smsResponse.status,
-            sid: smsResponse.sid
-          });
-          console.log(`SMS sent to ${number} with SID: ${smsResponse.sid}`);
-        } catch (smsError) {
-          console.error(`Failed to send SMS to ${number}:`, smsError);
-          smsResponses.push({
-            to: number,
-            status: 'failed',
-            error: smsError.message
-          });
+      if (twilioClient) {
+        console.log("Sending SMS alerts");
+        
+        // Create SMS recipient list
+        const smsNumberList = [...phoneNumbers]; // Start with provided numbers
+        
+        // Add mock numbers for organization types based on selections
+        if (smsRecipients?.authorities) {
+          smsNumberList.push("+18005551234"); // Mock authority number
         }
+        if (smsRecipients?.ngos) {
+          smsNumberList.push("+18005555678"); // Mock NGO number
+        }
+        if (smsRecipients?.media) {
+          smsNumberList.push("+18005559012"); // Mock media number
+        }
+        
+        // Format a simpler message for SMS
+        const smsText = `CRISIS ALERT (${severity.toUpperCase()}): ${crisisType} crisis in ${regionName}. ${message.substring(0, 100)}${message.length > 100 ? '...' : ''} - CrisisScope`;
+        
+        // Send SMS messages
+        for (const number of smsNumberList) {
+          try {
+            const smsResponse = await twilioClient.messages.create({
+              body: smsText,
+              to: number,
+              from: twilioPhoneNumber,
+            });
+            smsResponses.push({
+              to: number,
+              status: smsResponse.status,
+              sid: smsResponse.sid
+            });
+            console.log(`SMS sent to ${number} with SID: ${smsResponse.sid}`);
+          } catch (smsError) {
+            console.error(`Failed to send SMS to ${number}:`, smsError);
+            smsResponses.push({
+              to: number,
+              status: 'failed',
+              error: smsError.message || "Unknown SMS error"
+            });
+          }
+        }
+      } else {
+        console.warn("SMS sending was requested but Twilio is not configured correctly");
+        smsResponses = [{ status: "error", message: "Twilio not configured correctly" }];
       }
-    } else if (sendSms && !twilioClient) {
-      console.warn("SMS sending was requested but Twilio is not configured");
-      smsResponses = [{ status: "error", message: "Twilio not configured" }];
     }
 
     return new Response(JSON.stringify({ 
@@ -181,7 +200,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-crisis-alert function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
