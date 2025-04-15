@@ -1,13 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { Twilio } from "npm:twilio@4.23.0";
+import Twilio from "npm:twilio@4.23.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
 const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
-const twilioClient = accountSid && authToken ? new Twilio(accountSid, authToken) : null;
+const twilioClient = accountSid && authToken ? Twilio(accountSid, authToken) : null;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
