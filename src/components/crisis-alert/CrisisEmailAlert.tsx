@@ -28,6 +28,7 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   const { isOnline } = useAuth();
   const [twilioConfigured, setTwilioConfigured] = useState<boolean>(false);
   const [showTwilioStatus, setShowTwilioStatus] = useState<boolean>(false);
+  const [twilioErrorMessage, setTwilioErrorMessage] = useState<string | undefined>(undefined);
   
   const {
     activeTab,
@@ -48,7 +49,8 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     // Check if Twilio is configured from the response
     if (response?.sms) {
       setTwilioConfigured(response.sms.configured || false);
-      setShowTwilioStatus(!response.sms.configured);
+      setShowTwilioStatus(!response.sms.configured || !!response.sms.errorMessage);
+      setTwilioErrorMessage(response.sms.errorMessage);
     }
   });
 
@@ -80,7 +82,7 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
         
         <CardContent className="pt-4 space-y-4">
           {showTwilioStatus && activeTab === "sms" && (
-            <TwilioStatus isConfigured={twilioConfigured} />
+            <TwilioStatus isConfigured={twilioConfigured} errorMessage={twilioErrorMessage} />
           )}
         
           <TabsContent value="email" className="space-y-4 mt-0">

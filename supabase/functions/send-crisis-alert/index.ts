@@ -10,19 +10,35 @@ const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
 
 // Improved Twilio client initialization with better error handling
 let twilioClient = null;
+let twilioErrorMessage = null;
+
 try {
   if (accountSid && authToken && twilioPhoneNumber) {
-    if (accountSid.startsWith('AC')) {
+    // Check if the account SID has the correct format
+    if (!accountSid.startsWith('AC')) {
+      twilioErrorMessage = "Invalid Twilio Account SID format - must start with 'AC'";
+      console.error(twilioErrorMessage);
+    } else if (twilioPhoneNumber && !twilioPhoneNumber.startsWith('+')) {
+      twilioErrorMessage = "Invalid Twilio Phone Number - must start with '+' followed by country code";
+      console.error(twilioErrorMessage);
+    } else {
+      // All conditions met, initialize Twilio client
       twilioClient = Twilio(accountSid, authToken);
       console.log("Twilio client initialized successfully");
-    } else {
-      console.error("Invalid Twilio Account SID format - must start with 'AC'");
     }
   } else {
-    console.log("Twilio credentials missing - SMS functionality will be disabled");
+    // Log which credentials are missing
+    const missingCredentials = [];
+    if (!accountSid) missingCredentials.push("TWILIO_ACCOUNT_SID");
+    if (!authToken) missingCredentials.push("TWILIO_AUTH_TOKEN");
+    if (!twilioPhoneNumber) missingCredentials.push("TWILIO_PHONE_NUMBER");
+    
+    twilioErrorMessage = `SMS functionality disabled - missing: ${missingCredentials.join(", ")}`;
+    console.log(twilioErrorMessage);
   }
 } catch (error) {
-  console.error("Error initializing Twilio client:", error);
+  twilioErrorMessage = `Failed to initialize Twilio client: ${error.message}`;
+  console.error(twilioErrorMessage);
 }
 
 const corsHeaders = {
@@ -138,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send SMS alerts if enabled and Twilio is configured
     let smsResponses = [];
-    let twilioConfigured = !!twilioClient && !!twilioPhoneNumber;
+    let twilioConfigured = !!twilioClient;
     
     if (sendSms) {
       console.log("SMS sending requested. Twilio client available:", twilioConfigured);
@@ -188,17 +204,8 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
       } else {
-        const missingConfigs = [];
-        if (!accountSid) missingConfigs.push("TWILIO_ACCOUNT_SID");
-        if (!authToken) missingConfigs.push("TWILIO_AUTH_TOKEN");
-        if (!twilioPhoneNumber) missingConfigs.push("TWILIO_PHONE_NUMBER");
-        
-        const errorMessage = missingConfigs.length > 0 
-          ? `Missing Twilio configuration: ${missingConfigs.join(", ")}`
-          : "Twilio not configured correctly";
-          
-        console.warn(`SMS sending was requested but ${errorMessage}`);
-        smsResponses = [{ status: "error", message: errorMessage }];
+        console.warn(`SMS sending was requested but Twilio is not properly configured: ${twilioErrorMessage}`);
+        smsResponses = [{ status: "error", message: twilioErrorMessage || "Twilio not properly configured" }];
       }
     }
 
@@ -207,6 +214,7 @@ const handler = async (req: Request): Promise<Response> => {
       sms: sendSms ? { 
         sent: twilioConfigured,
         configured: twilioConfigured,
+        errorMessage: twilioErrorMessage,
         responses: smsResponses,
         twilioPhone: twilioPhoneNumber ? twilioPhoneNumber.substring(0, 4) + "..." : null
       } : null 

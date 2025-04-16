@@ -10,6 +10,7 @@ interface AlertResponse {
   sms: {
     sent: boolean;
     configured: boolean;
+    errorMessage?: string;
     responses: any[];
     twilioPhone: string | null;
   } | null;
@@ -196,7 +197,7 @@ export const useCrisisAlert = (
       } else if (data?.sms && !data.sms.configured && smsFormData.enableSms) {
         toast({
           title: "Email sent, SMS failed",
-          description: "Twilio is not properly configured. Only email was sent.",
+          description: data.sms.errorMessage || "Twilio is not properly configured. Only email was sent.",
         });
       } else if (smsFormData.enableSms) {
         toast({
