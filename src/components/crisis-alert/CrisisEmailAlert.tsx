@@ -54,10 +54,44 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     }
   });
 
-  // Check for Twilio errors in responses
+  // Check if Twilio is configured on component mount
   useEffect(() => {
-    // This effect serves as a future hook for any additional Twilio status handling
-  }, [twilioConfigured, twilioErrorMessage]);
+    const checkTwilioConfig = async () => {
+      try {
+        // Make a simple request to the edge function just to check Twilio status
+        const { data, error } = await supabase.functions.invoke('send-crisis-alert', {
+          body: { 
+            // Minimal data just to get a response with Twilio status
+            email: "check@example.com",
+            subject: "Configuration Check",
+            message: "This is just a configuration check",
+            recipients: {},
+            crisisType: "check",
+            regionName: "Configuration",
+            severity: "low",
+            sendSms: true,
+            phoneNumbers: [],
+            smsRecipients: {}
+          }
+        });
+        
+        if (error) {
+          console.error("Error checking Twilio configuration:", error);
+          return;
+        }
+        
+        if (data?.sms) {
+          console.log("Initial Twilio configuration check:", data.sms);
+          setTwilioConfigured(data.sms.configured || false);
+          setTwilioErrorMessage(data.sms.errorMessage);
+        }
+      } catch (err) {
+        console.error("Failed to check Twilio configuration:", err);
+      }
+    };
+    
+    checkTwilioConfig();
+  }, []);
 
   return (
     <Card className="shadow-md w-full max-w-lg mx-auto">

@@ -22,11 +22,26 @@ try {
     } else if (!twilioPhoneNumber.startsWith('+')) {
       twilioErrorMessage = "Invalid Twilio Phone Number - must start with '+' followed by country code";
       console.error(twilioErrorMessage);
+    } else if (authToken.length < 10) {
+      twilioErrorMessage = "Invalid Twilio Auth Token - token seems too short";
+      console.error(twilioErrorMessage);
     } else {
       // All conditions met, initialize Twilio client
       twilioClient = Twilio(accountSid, authToken);
       twilioConfigured = true;
       console.log("Twilio client initialized successfully");
+      
+      // Additional verification - do a test fetch of account info to validate credentials
+      (async () => {
+        try {
+          const account = await twilioClient.api.accounts(accountSid).fetch();
+          console.log(`Verified Twilio account: ${account.friendlyName}`);
+        } catch (verifyError) {
+          twilioConfigured = false;
+          twilioErrorMessage = `Twilio authentication failed: ${verifyError.message}`;
+          console.error(twilioErrorMessage);
+        }
+      })();
     }
   } else {
     // Log which credentials are missing

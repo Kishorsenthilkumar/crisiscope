@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Info, AlertTriangle, CheckCircle } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
 interface TwilioStatusProps {
   isConfigured: boolean;
@@ -17,9 +17,17 @@ export const TwilioStatus: React.FC<TwilioStatusProps> = ({ isConfigured, errorM
     );
   }
   
+  // Show different message based on error type
+  const isCredentialError = errorMessage && 
+    (errorMessage.includes('Authentication') || 
+     errorMessage.includes('invalid') || 
+     errorMessage.includes('Invalid'));
+     
   return (
-    <div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-sm flex items-center gap-2">
-      {errorMessage ? (
+    <div className={`p-3 ${isCredentialError ? 'bg-red-50 text-red-800 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200'} border rounded-md text-sm flex items-center gap-2`}>
+      {isCredentialError ? (
+        <XCircle className="h-4 w-4 flex-shrink-0" />
+      ) : errorMessage ? (
         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
       ) : (
         <Info className="h-4 w-4 flex-shrink-0" />

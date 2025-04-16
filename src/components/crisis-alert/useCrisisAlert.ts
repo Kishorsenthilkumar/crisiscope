@@ -136,7 +136,7 @@ export const useCrisisAlert = (
       if (invalidPhones.length > 0) {
         toast({
           title: "Invalid phone numbers",
-          description: `Please correct ${invalidPhones.length} invalid phone ${invalidPhones.length === 1 ? 'number' : 'numbers'}`,
+          description: `Please correct ${invalidPhones.length} invalid phone ${invalidPhones.length === 1 ? 'number' : 'numbers'}. Phone numbers must be in E.164 format (e.g., +12345678901)`,
           variant: "destructive"
         });
         return;
@@ -203,10 +203,16 @@ export const useCrisisAlert = (
             description: smsData.errorMessage || "Twilio is not properly configured. Only email was sent.",
             variant: "destructive"
           });
+        } else if (smsData.errorMessage) {
+          toast({
+            title: "Email sent, SMS failed",
+            description: smsData.errorMessage || "There was an issue sending SMS alerts. Check your Twilio configuration.",
+            variant: "destructive"
+          });
         } else {
           toast({
             title: "Email sent, SMS issue",
-            description: smsData.errorMessage || "There was an issue sending SMS alerts. Check the logs for details.",
+            description: "There was an issue sending SMS alerts. Check the logs for details.",
             variant: "destructive"
           });
         }
