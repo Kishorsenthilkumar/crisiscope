@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import { SmsForm } from './SmsForm';
 import { OfflineWarning } from './OfflineWarning';
 import { TwilioStatus } from './TwilioStatus';
 import { useCrisisAlert } from './useCrisisAlert';
+import { supabase } from '@/integrations/supabase/client';
 
 export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({ 
   crisisType = 'drought',
@@ -29,7 +29,6 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   const [twilioConfigured, setTwilioConfigured] = useState<boolean>(false);
   const [twilioErrorMessage, setTwilioErrorMessage] = useState<string | undefined>(undefined);
   
-  // Always show Twilio status for SMS tab
   const [activeTab, setActiveTab] = useState<"email" | "sms">("email");
   
   const {
@@ -46,7 +45,6 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     handleSendAlert,
     onAlertSent
   } = useCrisisAlert(crisisType, regionName, severity, (response) => {
-    // Check if Twilio is configured from the response
     if (response?.sms) {
       console.log("Twilio response:", response.sms);
       setTwilioConfigured(response.sms.configured || false);
@@ -54,14 +52,11 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
     }
   });
 
-  // Check if Twilio is configured on component mount
   useEffect(() => {
     const checkTwilioConfig = async () => {
       try {
-        // Make a simple request to the edge function just to check Twilio status
         const { data, error } = await supabase.functions.invoke('send-crisis-alert', {
           body: { 
-            // Minimal data just to get a response with Twilio status
             email: "check@example.com",
             subject: "Configuration Check",
             message: "This is just a configuration check",
