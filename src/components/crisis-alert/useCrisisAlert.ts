@@ -136,7 +136,7 @@ export const useCrisisAlert = (
       if (invalidPhones.length > 0) {
         toast({
           title: "Invalid phone numbers",
-          description: `Please correct ${invalidPhones.length} invalid phone numbers`,
+          description: `Please correct ${invalidPhones.length} invalid phone ${invalidPhones.length === 1 ? 'number' : 'numbers'}`,
           variant: "destructive"
         });
         return;
@@ -189,21 +189,27 @@ export const useCrisisAlert = (
       }
       
       // Show different success messages based on SMS status
-      if (data?.sms?.sent) {
-        toast({
-          title: "Alerts sent successfully",
-          description: "Crisis alert has been dispatched via email and SMS",
-        });
-      } else if (data?.sms && !data.sms.configured && smsFormData.enableSms) {
-        toast({
-          title: "Email sent, SMS failed",
-          description: data.sms.errorMessage || "Twilio is not properly configured. Only email was sent.",
-        });
-      } else if (smsFormData.enableSms) {
-        toast({
-          title: "Email sent, SMS issue",
-          description: "There was an issue sending SMS alerts. Check the logs for details.",
-        });
+      const smsData = (data as AlertResponse)?.sms;
+      
+      if (smsFormData.enableSms && smsData) {
+        if (smsData.sent) {
+          toast({
+            title: "Alerts sent successfully",
+            description: "Crisis alert has been dispatched via email and SMS",
+          });
+        } else if (!smsData.configured) {
+          toast({
+            title: "Email sent, SMS failed",
+            description: smsData.errorMessage || "Twilio is not properly configured. Only email was sent.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Email sent, SMS issue",
+            description: smsData.errorMessage || "There was an issue sending SMS alerts. Check the logs for details.",
+            variant: "destructive"
+          });
+        }
       } else {
         toast({
           title: "Email alert sent",

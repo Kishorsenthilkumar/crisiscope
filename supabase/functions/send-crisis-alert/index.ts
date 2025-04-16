@@ -11,19 +11,21 @@ const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
 // Improved Twilio client initialization with better error handling
 let twilioClient = null;
 let twilioErrorMessage = null;
+let twilioConfigured = false;
 
 try {
   if (accountSid && authToken && twilioPhoneNumber) {
-    // Check if the account SID has the correct format
+    // Validate credentials format - we just check basic patterns here
     if (!accountSid.startsWith('AC')) {
       twilioErrorMessage = "Invalid Twilio Account SID format - must start with 'AC'";
       console.error(twilioErrorMessage);
-    } else if (twilioPhoneNumber && !twilioPhoneNumber.startsWith('+')) {
+    } else if (!twilioPhoneNumber.startsWith('+')) {
       twilioErrorMessage = "Invalid Twilio Phone Number - must start with '+' followed by country code";
       console.error(twilioErrorMessage);
     } else {
       // All conditions met, initialize Twilio client
       twilioClient = Twilio(accountSid, authToken);
+      twilioConfigured = true;
       console.log("Twilio client initialized successfully");
     }
   } else {
@@ -154,12 +156,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send SMS alerts if enabled and Twilio is configured
     let smsResponses = [];
-    let twilioConfigured = !!twilioClient;
+    let smsSent = false;
     
     if (sendSms) {
-      console.log("SMS sending requested. Twilio client available:", twilioConfigured);
+      console.log(`SMS sending requested. Twilio client available: ${twilioConfigured}`);
       
-      if (twilioConfigured) {
+      if (twilioConfigured && twilioClient) {
         console.log("Sending SMS alerts with phone number:", twilioPhoneNumber);
         
         // Create SMS recipient list
@@ -180,43 +182,76 @@ const handler = async (req: Request): Promise<Response> => {
         const smsText = `CRISIS ALERT (${severity.toUpperCase()}): ${crisisType} crisis in ${regionName}. ${message.substring(0, 100)}${message.length > 100 ? '...' : ''} - CrisisScope`;
         
         // Send SMS messages
-        for (const number of smsNumberList) {
-          try {
-            console.log(`Attempting to send SMS to ${number} from ${twilioPhoneNumber}`);
-            const smsResponse = await twilioClient.messages.create({
-              body: smsText,
-              to: number,
-              from: twilioPhoneNumber,
-            });
-            smsResponses.push({
-              to: number,
-              status: smsResponse.status,
-              sid: smsResponse.sid
-            });
-            console.log(`SMS sent to ${number} with SID: ${smsResponse.sid}`);
-          } catch (smsError) {
-            console.error(`Failed to send SMS to ${number}:`, smsError);
-            smsResponses.push({
-              to: number,
-              status: 'failed',
-              error: smsError.message || "Unknown SMS error"
-            });
+        try {
+          for (const number of smsNumberList) {
+            try {
+              console.log(`Attempting to send SMS to ${number} from ${twilioPhoneNumber}`);
+              
+              // Try to verify the phone number's format before sending
+              if (!number || !number.match(/^\+[1-9]\d{1,14}$/)) {
+                throw new Error(`Invalid phone number format: ${number}. Must use E.164 format starting with +`);
+              }
+              
+              const smsResponse = await twilioClient.messages.create({
+                body: smsText,
+                to: number,
+                from: twilioPhoneNumber,
+              });
+              
+              smsResponses.push({
+                to: number,
+                status: smsResponse.status,
+                sid: smsResponse.sid
+              });
+              
+              console.log(`SMS sent to ${number} with SID: ${smsResponse.sid}`);
+              smsSent = true;
+            } catch (smsError) {
+              console.error(`Failed to send SMS to ${number}:`, smsError);
+              smsResponses.push({
+                to: number,
+                status: 'failed',
+                error: smsError.message || "Unknown SMS error"
+              });
+              
+              // Update the twilioErrorMessage if authentication failed
+              if (smsError.message?.includes('authenticate') || smsError.code === 20003) {
+                twilioErrorMessage = "Authentication failed. Please check your Twilio account SID and auth token.";
+                twilioConfigured = false;
+              } else if (smsError.code === 21211) {
+                // Invalid 'To' phone number
+                console.error("Invalid destination phone number format");
+              } else if (smsError.code === 21606) {
+                // Invalid 'From' phone number
+                twilioErrorMessage = "The Twilio phone number is invalid or not enabled for SMS. Check your account.";
+                twilioConfigured = false;
+              }
+            }
           }
+        } catch (bulkSmsError) {
+          console.error("Failed to process SMS batch:", bulkSmsError);
+          twilioErrorMessage = `SMS sending failed: ${bulkSmsError.message}`;
         }
       } else {
         console.warn(`SMS sending was requested but Twilio is not properly configured: ${twilioErrorMessage}`);
-        smsResponses = [{ status: "error", message: twilioErrorMessage || "Twilio not properly configured" }];
       }
     }
+
+    // Log the final Twilio status for debugging
+    console.log("Twilio final status:", { 
+      configured: twilioConfigured, 
+      errorMessage: twilioErrorMessage,
+      smsSent: smsSent
+    });
 
     return new Response(JSON.stringify({ 
       email: emailResponse,
       sms: sendSms ? { 
-        sent: twilioConfigured,
+        sent: smsSent,
         configured: twilioConfigured,
         errorMessage: twilioErrorMessage,
         responses: smsResponses,
-        twilioPhone: twilioPhoneNumber ? twilioPhoneNumber.substring(0, 4) + "..." : null
+        twilioPhone: twilioPhoneNumber ? `${twilioPhoneNumber.substring(0, 4)}...` : null
       } : null 
     }), {
       status: 200,

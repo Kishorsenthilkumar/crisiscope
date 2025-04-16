@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,12 +27,12 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
 }) => {
   const { isOnline } = useAuth();
   const [twilioConfigured, setTwilioConfigured] = useState<boolean>(false);
-  const [showTwilioStatus, setShowTwilioStatus] = useState<boolean>(false);
   const [twilioErrorMessage, setTwilioErrorMessage] = useState<string | undefined>(undefined);
   
+  // Always show Twilio status for SMS tab
+  const [activeTab, setActiveTab] = useState<"email" | "sms">("email");
+  
   const {
-    activeTab,
-    setActiveTab,
     emailFormData,
     setEmailFormData,
     smsFormData,
@@ -48,11 +48,16 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   } = useCrisisAlert(crisisType, regionName, severity, (response) => {
     // Check if Twilio is configured from the response
     if (response?.sms) {
+      console.log("Twilio response:", response.sms);
       setTwilioConfigured(response.sms.configured || false);
-      setShowTwilioStatus(!response.sms.configured || !!response.sms.errorMessage);
       setTwilioErrorMessage(response.sms.errorMessage);
     }
   });
+
+  // Check for Twilio errors in responses
+  useEffect(() => {
+    // This effect serves as a future hook for any additional Twilio status handling
+  }, [twilioConfigured, twilioErrorMessage]);
 
   return (
     <Card className="shadow-md w-full max-w-lg mx-auto">
@@ -81,7 +86,7 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
         </div>
         
         <CardContent className="pt-4 space-y-4">
-          {showTwilioStatus && activeTab === "sms" && (
+          {activeTab === "sms" && (
             <TwilioStatus isConfigured={twilioConfigured} errorMessage={twilioErrorMessage} />
           )}
         
@@ -129,13 +134,13 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
           ) : (
             <>
               <Phone className="h-4 w-4 mr-1 opacity-70" />
-              SMS alert
+              SMS alert {!twilioConfigured && "(disabled)"}
             </>
           )}
         </div>
         <Button
           onClick={() => handleSendAlert(isOnline)}
-          disabled={isLoading || !isOnline}
+          disabled={isLoading || !isOnline || (activeTab === "sms" && smsFormData.enableSms && !twilioConfigured)}
         >
           {isLoading ? (
             <>
