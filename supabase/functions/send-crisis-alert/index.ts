@@ -27,26 +27,35 @@ try {
       console.error(twilioErrorMessage);
     } else {
       // All conditions met, initialize Twilio client
-      twilioClient = Twilio(accountSid, authToken);
-      twilioConfigured = true;
-      console.log("Twilio client initialized successfully");
+      try {
+        twilioClient = Twilio(accountSid, authToken);
+        twilioConfigured = true;
+        console.log("Twilio client initialized successfully");
+      } catch (initError) {
+        twilioErrorMessage = `Failed to initialize Twilio client: ${initError.message}`;
+        console.error(twilioErrorMessage);
+      }
       
-      // Additional verification - do a test fetch of account info to validate credentials
+      // Do a test fetch of account info to validate credentials, but don't block the main flow
       (async () => {
         try {
+          console.log("Verifying Twilio account credentials...");
           const account = await twilioClient.api.accounts(accountSid).fetch();
           if (account.status === 'active') {
             console.log(`Verified Twilio account: ${account.friendlyName}`);
           } else {
             twilioErrorMessage = `Twilio account is not active (status: ${account.status})`;
+            twilioConfigured = false;
             console.warn(twilioErrorMessage);
           }
         } catch (verifyError) {
           twilioConfigured = false;
-          if (verifyError.code === 20003 || verifyError.message?.includes('authenticate')) {
+          console.error("Twilio verification error:", verifyError);
+          
+          if (verifyError.code === 20003 || (verifyError.message && verifyError.message.includes('authenticate'))) {
             twilioErrorMessage = "Invalid Twilio credentials. Please check your Account SID and Auth Token.";
           } else {
-            twilioErrorMessage = `Twilio authentication failed: ${verifyError.message}`;
+            twilioErrorMessage = `Twilio authentication failed: ${verifyError.message || 'Unknown error'}`;
           }
           console.error(twilioErrorMessage);
         }
@@ -118,6 +127,15 @@ const handler = async (req: Request): Promise<Response> => {
     // Special case for configuration check
     if (crisisType === "check") {
       console.log("Configuration check requested");
+      // Log full details of Twilio configuration for debugging
+      console.log("Twilio details:", {
+        accountSid: accountSid ? `${accountSid.substring(0, 4)}...` : null,
+        authToken: authToken ? "provided" : null,
+        phoneNumber: twilioPhoneNumber,
+        configured: twilioConfigured,
+        errorMessage: twilioErrorMessage
+      });
+      
       return new Response(JSON.stringify({ 
         email: { 
           configured: Boolean(Deno.env.get("RESEND_API_KEY")),

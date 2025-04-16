@@ -55,6 +55,7 @@ export const CrisisEmailAlert: React.FC<CrisisEmailAlertProps> = ({
   useEffect(() => {
     const checkTwilioConfig = async () => {
       try {
+        console.log("Checking Twilio configuration...");
         const { data, error } = await supabase.functions.invoke('send-crisis-alert', {
           body: { 
             email: "check@example.com",
