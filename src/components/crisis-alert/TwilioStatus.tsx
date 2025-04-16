@@ -20,9 +20,14 @@ export const TwilioStatus: React.FC<TwilioStatusProps> = ({ isConfigured, errorM
   // Show different message based on error type
   const isCredentialError = errorMessage && 
     (errorMessage.includes('Authentication') || 
+     errorMessage.includes('authenticate') ||
+     errorMessage.includes('credentials') ||
      errorMessage.includes('invalid') || 
      errorMessage.includes('Invalid'));
      
+  const isMissingError = errorMessage &&
+    errorMessage.includes('missing');
+  
   return (
     <div className={`p-3 ${isCredentialError ? 'bg-red-50 text-red-800 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200'} border rounded-md text-sm flex items-center gap-2`}>
       {isCredentialError ? (

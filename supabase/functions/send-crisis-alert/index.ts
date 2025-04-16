@@ -35,10 +35,19 @@ try {
       (async () => {
         try {
           const account = await twilioClient.api.accounts(accountSid).fetch();
-          console.log(`Verified Twilio account: ${account.friendlyName}`);
+          if (account.status === 'active') {
+            console.log(`Verified Twilio account: ${account.friendlyName}`);
+          } else {
+            twilioErrorMessage = `Twilio account is not active (status: ${account.status})`;
+            console.warn(twilioErrorMessage);
+          }
         } catch (verifyError) {
           twilioConfigured = false;
-          twilioErrorMessage = `Twilio authentication failed: ${verifyError.message}`;
+          if (verifyError.code === 20003 || verifyError.message?.includes('authenticate')) {
+            twilioErrorMessage = "Invalid Twilio credentials. Please check your Account SID and Auth Token.";
+          } else {
+            twilioErrorMessage = `Twilio authentication failed: ${verifyError.message}`;
+          }
           console.error(twilioErrorMessage);
         }
       })();
@@ -50,7 +59,7 @@ try {
     if (!authToken) missingCredentials.push("TWILIO_AUTH_TOKEN");
     if (!twilioPhoneNumber) missingCredentials.push("TWILIO_PHONE_NUMBER");
     
-    twilioErrorMessage = `SMS functionality disabled - missing: ${missingCredentials.join(", ")}`;
+    twilioErrorMessage = `SMS functionality disabled - missing Twilio credentials: ${missingCredentials.join(", ")}`;
     console.log(twilioErrorMessage);
   }
 } catch (error) {
@@ -105,6 +114,30 @@ const handler = async (req: Request): Promise<Response> => {
       phoneNumbers,
       smsRecipients 
     }: CrisisAlertRequest = await req.json();
+
+    // Special case for configuration check
+    if (crisisType === "check") {
+      console.log("Configuration check requested");
+      return new Response(JSON.stringify({ 
+        email: { 
+          configured: Boolean(Deno.env.get("RESEND_API_KEY")),
+          error: null
+        },
+        sms: { 
+          sent: false,
+          configured: twilioConfigured,
+          errorMessage: twilioErrorMessage,
+          responses: [],
+          twilioPhone: twilioPhoneNumber ? `${twilioPhoneNumber.substring(0, 4)}...` : null
+        } 
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
 
     // Create recipient list - always include the specified email
     const recipientList = [email];
