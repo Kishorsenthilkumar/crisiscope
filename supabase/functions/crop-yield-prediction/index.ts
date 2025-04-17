@@ -1,5 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { HfInference } from "https://esm.sh/@huggingface/inference@2.3.2";
 
 // CORS headers for the edge function
 const corsHeaders = {
@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Interface for the model response from HuggingFace
+// Interface for the model response
 interface ModelPrediction {
   cropType: string;
   currentYield: number;
@@ -48,6 +48,9 @@ serve(async (req) => {
       throw new Error("ML model API token not configured");
     }
 
+    // Initialize Hugging Face Inference
+    const hf = new HfInference(HF_API_TOKEN);
+
     console.log(`Fetching crop yield predictions for state: ${stateId}`);
     
     // Get districts for the selected state
@@ -58,7 +61,6 @@ serve(async (req) => {
     
     for (const district of districts) {
       // Get weather and soil data for this district
-      // This would typically come from another data source or API
       const environmentalData = await getEnvironmentalData(district.id);
       
       // Get list of crops for this district
@@ -77,8 +79,8 @@ serve(async (req) => {
           humidity: environmentalData.humidity
         };
         
-        // Call Hugging Face Inference API
-        const prediction = await callHuggingFaceModel(HF_API_TOKEN, modelInput);
+        // Call Hugging Face Inference API for crop yield prediction
+        const prediction = await callHuggingFaceModel(hf, modelInput);
         
         // Format the prediction in our app's format
         predictions.push({
@@ -124,84 +126,32 @@ serve(async (req) => {
 });
 
 // Helper function to call the Hugging Face model
-async function callHuggingFaceModel(apiToken: string, inputData: any): Promise<ModelPrediction> {
+async function callHuggingFaceModel(hf: HfInference, inputData: any): Promise<ModelPrediction> {
   try {
-    // This is where we'd normally call the actual HuggingFace model API
-    // For now, we'll simulate a model response based on the input data
+    // Use Hugging Face for ML model inference
+    // Note: Replace with actual Hugging Face model endpoint for crop yield prediction
+    const modelEndpoint = "your-huggingface-crop-yield-model-endpoint";
     
-    // In production, replace this with a real API call like:
-    /*
-    const response = await fetch("https://api-inference.huggingface.co/models/YOUR_MODEL_ID", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(inputData)
+    const result = await hf.prediction(modelEndpoint, {
+      inputs: {
+        district_id: inputData.district_id,
+        crop_type: inputData.crop_type,
+        historical_yield: inputData.historical_yield,
+        rainfall: inputData.rainfall,
+        temperature: inputData.temperature,
+        soil_moisture: inputData.soil_moisture,
+        humidity: inputData.humidity
+      }
     });
-    
-    if (!response.ok) {
-      throw new Error(`Model API error: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    */
-    
-    // For now, we'll simulate a model response
-    // In production, you would use the actual model's response format
-    
-    // Simulate some basic crop yield prediction logic
-    const baseYield = inputData.historical_yield;
-    const rainfall = inputData.rainfall;
-    const temperature = inputData.temperature;
-    const soilMoisture = inputData.soil_moisture;
-    
-    // Simple model: yield changes based on environmental factors
-    let yieldChange = 0;
-    
-    // Rainfall impact (optimum around 600mm)
-    if (rainfall < 300) {
-      yieldChange -= 15 + (300 - rainfall) / 30;
-    } else if (rainfall > 900) {
-      yieldChange -= (rainfall - 900) / 100;
-    } else {
-      yieldChange += 5;
-    }
-    
-    // Temperature impact (optimum around 25C)
-    const tempDiff = Math.abs(temperature - 25);
-    if (tempDiff > 5) {
-      yieldChange -= (tempDiff - 5) * 1.2;
-    }
-    
-    // Soil moisture impact (optimum around 30-40%)
-    if (soilMoisture < 20) {
-      yieldChange -= (20 - soilMoisture) * 0.8;
-    } else if (soilMoisture > 50) {
-      yieldChange -= (soilMoisture - 50) * 0.5;
-    }
-    
-    // Calculate new yield
-    const predictedYield = baseYield * (1 + yieldChange / 100);
-    
-    // Determine risk level
-    let riskLevel = "low";
-    if (yieldChange < -15) {
-      riskLevel = "high";
-    } else if (yieldChange < -5) {
-      riskLevel = "medium";
-    }
-    
-    // Calculate confidence based on data availability
-    const confidence = 85 - (Math.random() * 15);
-    
+
+    // Process model result and return prediction
     return {
       cropType: inputData.crop_type,
-      currentYield: baseYield,
-      predictedYield: parseFloat(predictedYield.toFixed(2)),
-      yieldChangePercent: parseFloat(yieldChange.toFixed(1)),
-      confidence: parseFloat(confidence.toFixed(1)),
-      riskLevel: riskLevel as "low" | "medium" | "high",
+      currentYield: inputData.historical_yield,
+      predictedYield: result.predicted_yield,
+      yieldChangePercent: result.yield_change_percent,
+      confidence: result.confidence,
+      riskLevel: result.risk_level,
       factors: {
         rainfall: inputData.rainfall,
         temperature: inputData.temperature,
@@ -211,7 +161,7 @@ async function callHuggingFaceModel(apiToken: string, inputData: any): Promise<M
     };
     
   } catch (error) {
-    console.error("Error calling HuggingFace model:", error);
+    console.error("Error calling Hugging Face model:", error);
     throw error;
   }
 }

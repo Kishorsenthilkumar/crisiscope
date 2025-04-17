@@ -1,5 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { HfInference } from "https://esm.sh/@huggingface/inference@2.3.2";
 
 // CORS headers for the edge function
 const corsHeaders = {
@@ -45,6 +45,9 @@ serve(async (req) => {
       throw new Error("ML model API token not configured");
     }
 
+    // Initialize Hugging Face Inference
+    const hf = new HfInference(HF_API_TOKEN);
+
     console.log(`Fetching drought predictions for state: ${stateId}`);
     
     // Get districts for the selected state
@@ -69,8 +72,8 @@ serve(async (req) => {
         vegetation_index: climateData.vegetationIndex
       };
       
-      // Call Hugging Face Inference API
-      const prediction = await callDroughtModel(HF_API_TOKEN, modelInput);
+      // Call Hugging Face Inference API for drought prediction
+      const prediction = await callDroughtModel(hf, modelInput);
       
       // Create agriculture impact message based on severity
       let agricultureImpact = "";
@@ -125,109 +128,36 @@ serve(async (req) => {
 });
 
 // Helper function to call the drought prediction model
-async function callDroughtModel(apiToken: string, inputData: any): Promise<DroughtModelPrediction> {
+async function callDroughtModel(hf: HfInference, inputData: any): Promise<DroughtModelPrediction> {
   try {
-    // This is where we'd normally call the actual HuggingFace model API
-    // For now, we'll simulate a model response based on the input data
+    // Use Hugging Face for ML model inference
+    // Note: Replace with actual Hugging Face model endpoint for drought prediction
+    const modelEndpoint = "your-huggingface-drought-prediction-model-endpoint";
     
-    // In production, replace this with a real API call like:
-    /*
-    const response = await fetch("https://api-inference.huggingface.co/models/YOUR_DROUGHT_MODEL_ID", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(inputData)
+    const result = await hf.prediction(modelEndpoint, {
+      inputs: {
+        district_id: inputData.district_id,
+        previous_rainfall: inputData.previous_rainfall,
+        current_rainfall: inputData.current_rainfall,
+        temperature_anomaly: inputData.temperature_anomaly,
+        reservoir_level: inputData.reservoir_level,
+        soil_moisture: inputData.soil_moisture,
+        evaporation_rate: inputData.evaporation_rate,
+        vegetation_index: inputData.vegetation_index
+      }
     });
-    
-    if (!response.ok) {
-      throw new Error(`Model API error: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    */
-    
-    // For now, we'll simulate a model response
-    // In production, you would use the actual model's response format
-    
-    // Extract input values
-    const rainfallDeficit = inputData.previous_rainfall - inputData.current_rainfall;
-    const reservoirLevel = inputData.reservoir_level;
-    const temperatureAnomaly = inputData.temperature_anomaly;
-    const vegetationIndex = inputData.vegetation_index;
-    const soilMoisture = inputData.soil_moisture;
-    
-    // Calculate risk score (0-100) based on multiple factors
-    let riskScore = 0;
-    
-    // Rainfall deficit impact (higher deficit = higher risk)
-    if (rainfallDeficit > 0) {
-      riskScore += Math.min(30, rainfallDeficit / 5);
-    }
-    
-    // Reservoir level impact (lower level = higher risk)
-    riskScore += Math.max(0, 30 - (reservoirLevel / 3));
-    
-    // Temperature anomaly impact (higher anomaly = higher risk)
-    if (temperatureAnomaly > 0) {
-      riskScore += temperatureAnomaly * 5;
-    }
-    
-    // Vegetation health impact (lower health = higher risk)
-    riskScore += Math.max(0, 20 - (vegetationIndex / 5));
-    
-    // Soil moisture impact (lower moisture = higher risk)
-    riskScore += Math.max(0, 20 - soilMoisture);
-    
-    // Add some randomness to simulate model uncertainty
-    riskScore += (Math.random() * 10) - 5;
-    
-    // Clamp risk score to 0-100 range
-    riskScore = Math.max(0, Math.min(100, riskScore));
-    
-    // Determine severity based on risk score
-    let severity;
-    let impactLevel;
-    let probabilityPercent;
-    let durationMonths;
-    
-    if (riskScore >= 75) {
-      severity = "extreme";
-      impactLevel = "critical";
-      probabilityPercent = 70 + Math.random() * 30; // 70-100%
-      durationMonths = 6 + Math.floor(Math.random() * 7); // 6-12 months
-    } else if (riskScore >= 60) {
-      severity = "high";
-      impactLevel = "severe";
-      probabilityPercent = 50 + Math.random() * 30; // 50-80%
-      durationMonths = 3 + Math.floor(Math.random() * 4); // 3-6 months
-    } else if (riskScore >= 40) {
-      severity = "medium";
-      impactLevel = "moderate";
-      probabilityPercent = 30 + Math.random() * 30; // 30-60%
-      durationMonths = 2 + Math.floor(Math.random() * 3); // 2-4 months
-    } else {
-      severity = "low";
-      impactLevel = "minimal";
-      probabilityPercent = 5 + Math.random() * 30; // 5-35%
-      durationMonths = 1 + Math.floor(Math.random() * 2); // 1-2 months
-    }
-    
-    // Calculate other drought indicators
-    const waterReservoirLevel = reservoirLevel;
-    const evaporationRate = inputData.evaporation_rate;
-    
+
+    // Process model result and return prediction
     return {
-      riskScore: parseFloat(riskScore.toFixed(1)),
-      severity,
-      probabilityPercent: parseFloat(probabilityPercent.toFixed(1)),
-      durationMonths,
-      impactLevel,
-      waterReservoirLevel: parseFloat(waterReservoirLevel.toFixed(1)),
-      rainfallDeficit: parseFloat(rainfallDeficit.toFixed(1)),
-      evaporationRate: parseFloat(evaporationRate.toFixed(1)),
-      vegetationHealthIndex: parseFloat(vegetationIndex.toFixed(1))
+      riskScore: result.risk_score,
+      severity: result.severity,
+      probabilityPercent: result.probability_percent,
+      durationMonths: result.duration_months,
+      impactLevel: result.impact_level,
+      waterReservoirLevel: result.water_reservoir_level,
+      rainfallDeficit: result.rainfall_deficit,
+      evaporationRate: result.evaporation_rate,
+      vegetationHealthIndex: result.vegetation_health_index
     };
     
   } catch (error) {
