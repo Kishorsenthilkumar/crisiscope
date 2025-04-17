@@ -21,6 +21,7 @@ export interface CropYieldPrediction {
   };
   riskLevel: 'low' | 'medium' | 'high';
   lastUpdated: string; // date string
+  modelSource?: string; // indicates if the prediction comes from a self-trained model
 }
 
 export interface DroughtPrediction {
@@ -38,6 +39,7 @@ export interface DroughtPrediction {
   vegetationHealthIndex: number; // 0-100
   agricultureImpact: string;
   lastUpdated: string; // date string
+  modelSource?: string; // indicates if the prediction comes from a self-trained model
 }
 
 // Configuration for production or development mode
@@ -172,6 +174,73 @@ export const getDroughtPredictions = async (stateId: string): Promise<DroughtPre
       return getMockDroughtPredictions(stateId);
     }
     throw err;
+  }
+};
+
+// Train crop yield prediction model
+export const trainCropYieldModel = async (cropType: string, trainingData: any[]): Promise<boolean> => {
+  try {
+    if (config.logApiCalls) console.log(`Training crop yield model for ${cropType} with ${trainingData.length} samples`);
+    
+    const { data, error } = await supabase.functions.invoke('crop-yield-prediction', {
+      body: { 
+        operation: 'train', 
+        cropType, 
+        trainingDataset: trainingData 
+      }
+    });
+    
+    if (error) {
+      console.error(`Error training crop yield model for ${cropType}:`, error);
+      return false;
+    }
+    
+    if (data && data.success) {
+      console.log(`Successfully trained crop yield model for ${cropType}: ${data.message}`);
+      // Clear cache to force fresh predictions with the new model
+      cache.cropYields.clear();
+      return true;
+    } else {
+      console.error(`Failed to train crop yield model for ${cropType}:`, data?.error || 'Unknown error');
+      return false;
+    }
+    
+  } catch (err) {
+    console.error(`Error in trainCropYieldModel for ${cropType}:`, err);
+    return false;
+  }
+};
+
+// Train drought prediction model
+export const trainDroughtModel = async (trainingData: any[]): Promise<boolean> => {
+  try {
+    if (config.logApiCalls) console.log(`Training drought model with ${trainingData.length} samples`);
+    
+    const { data, error } = await supabase.functions.invoke('drought-prediction', {
+      body: { 
+        operation: 'train',
+        trainingDataset: trainingData 
+      }
+    });
+    
+    if (error) {
+      console.error(`Error training drought model:`, error);
+      return false;
+    }
+    
+    if (data && data.success) {
+      console.log(`Successfully trained drought model: ${data.message}`);
+      // Clear cache to force fresh predictions with the new model
+      cache.droughts.clear();
+      return true;
+    } else {
+      console.error(`Failed to train drought model:`, data?.error || 'Unknown error');
+      return false;
+    }
+    
+  } catch (err) {
+    console.error(`Error in trainDroughtModel:`, err);
+    return false;
   }
 };
 

@@ -1,5 +1,11 @@
 
 project_id = "kwwxpnayqiuamosfacde"
 
+[functions.crop-yield-prediction]
+verify_jwt = false
+
+[functions.drought-prediction]  
+verify_jwt = false
+
 [functions.send-crisis-alert]
 verify_jwt = false
