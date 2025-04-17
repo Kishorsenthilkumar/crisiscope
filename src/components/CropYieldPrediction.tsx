@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Wheat, TrendingUp, TrendingDown, AlertCircle, Droplet, Thermometer, Sprout, Filter } from 'lucide-react';
+import { Wheat, TrendingUp, TrendingDown, AlertCircle, Droplet, Thermometer, Sprout, Filter, Loader2 } from 'lucide-react';
 import { CropYieldPrediction, getCropYieldPredictions } from '../services/predictionService';
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 
 interface CropYieldPredictionProps {
   stateId: string;
@@ -26,7 +27,35 @@ export const CropYieldPredictionComponent: React.FC<CropYieldPredictionProps> = 
 }) => {
   const [selectedCropType, setSelectedCropType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'district' | 'yield' | 'risk'>('risk');
-  const [predictions, setPredictions] = useState<CropYieldPrediction[]>(() => getCropYieldPredictions(stateId));
+  const [predictions, setPredictions] = useState<CropYieldPrediction[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Load predictions on component mount or when stateId changes
+  useEffect(() => {
+    loadPredictions();
+  }, [stateId]);
+  
+  // Function to load predictions
+  const loadPredictions = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await getCropYieldPredictions(stateId);
+      setPredictions(data);
+    } catch (err) {
+      console.error('Error loading crop yield predictions:', err);
+      setError('Failed to load predictions. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to load crop yield predictions.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filter predictions based on selected crop type and district
   const filteredPredictions = predictions
@@ -40,8 +69,6 @@ export const CropYieldPredictionComponent: React.FC<CropYieldPredictionProps> = 
     return (b.riskLevel === 'high' ? 3 : b.riskLevel === 'medium' ? 2 : 1) - 
            (a.riskLevel === 'high' ? 3 : a.riskLevel === 'medium' ? 2 : 1);
   });
-  
-  const cropTypes = ['wheat', 'rice', 'corn', 'cotton', 'sugarcane'];
   
   // Get the unique crop types in the predictions
   const availableCropTypes = Array.from(new Set(predictions.map(p => p.cropType)));
@@ -88,7 +115,11 @@ export const CropYieldPredictionComponent: React.FC<CropYieldPredictionProps> = 
   
   // Function to refresh predictions
   const refreshPredictions = () => {
-    setPredictions(getCropYieldPredictions(stateId));
+    loadPredictions();
+    toast({
+      title: "Refreshing data",
+      description: "Getting latest crop yield predictions..."
+    });
   };
   
   return (
@@ -115,8 +146,9 @@ export const CropYieldPredictionComponent: React.FC<CropYieldPredictionProps> = 
               size="sm" 
               className="h-8"
               onClick={refreshPredictions}
+              disabled={isLoading}
             >
-              Refresh
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
             </Button>
           </div>
         </div>
@@ -155,7 +187,25 @@ export const CropYieldPredictionComponent: React.FC<CropYieldPredictionProps> = 
           </div>
         </div>
         
-        {sortedPredictions.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[350px]">
+            <Loader2 className="h-10 w-10 mb-4 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading crop yield predictions...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+            <AlertCircle className="h-10 w-10 mb-2 text-red-500" />
+            <p className="text-red-500">{error}</p>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={refreshPredictions}
+              className="mt-4"
+            >
+              Try Again
+            </Button>
+          </div>
+        ) : sortedPredictions.length > 0 ? (
           <ScrollArea className="h-[350px] pr-4">
             <div className="space-y-3">
               {sortedPredictions.map((prediction, idx) => {

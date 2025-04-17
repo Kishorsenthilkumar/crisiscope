@@ -1,6 +1,8 @@
 
 // Prediction service for crop yield and drought crisis predictions
-// This would be replaced with actual ML model API calls in a production environment
+// Uses ML models via Edge Functions for production, with fallback to mock data
+
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CropYieldPrediction {
   districtId: string;
@@ -38,8 +40,143 @@ export interface DroughtPrediction {
   lastUpdated: string; // date string
 }
 
-// Mock data generator for crop yield predictions
-export const getCropYieldPredictions = (stateId: string): CropYieldPrediction[] => {
+// Configuration for production or development mode
+const config = {
+  // Set to true to use real ML models, false to use mock data
+  useRealModels: true,
+  // Fallback to mock data if API calls fail
+  fallbackToMock: true,
+  // Cache predictions to reduce API calls (in milliseconds)
+  cacheDuration: 1000 * 60 * 15, // 15 minutes 
+  // Log API calls for debugging
+  logApiCalls: true
+};
+
+// Cache for prediction results
+interface CacheEntry<T> {
+  data: T[];
+  timestamp: number;
+}
+
+const cache = {
+  cropYields: new Map<string, CacheEntry<CropYieldPrediction>>(),
+  droughts: new Map<string, CacheEntry<DroughtPrediction>>()
+};
+
+// Main function to get crop yield predictions
+export const getCropYieldPredictions = async (stateId: string): Promise<CropYieldPrediction[]> => {
+  try {
+    // Check if we have a recent cache
+    const cachedData = cache.cropYields.get(stateId);
+    if (cachedData && Date.now() - cachedData.timestamp < config.cacheDuration) {
+      if (config.logApiCalls) console.log('Returning cached crop yield predictions for', stateId);
+      return cachedData.data;
+    }
+    
+    if (config.useRealModels) {
+      // Call Supabase Edge Function for ML model predictions
+      if (config.logApiCalls) console.log('Fetching crop yield predictions from ML model for', stateId);
+      
+      const { data, error } = await supabase.functions.invoke('crop-yield-prediction', {
+        body: { stateId }
+      });
+      
+      if (error) {
+        console.error('Error calling crop-yield-prediction function:', error);
+        if (config.fallbackToMock) {
+          console.warn('Falling back to mock crop yield data');
+          return getMockCropYieldPredictions(stateId);
+        }
+        throw error;
+      }
+      
+      if (data && Array.isArray(data)) {
+        // Cache the results
+        cache.cropYields.set(stateId, {
+          data: data,
+          timestamp: Date.now()
+        });
+        return data;
+      } else {
+        console.error('Invalid response format from crop-yield-prediction function');
+        if (config.fallbackToMock) {
+          console.warn('Falling back to mock crop yield data');
+          return getMockCropYieldPredictions(stateId);
+        }
+        throw new Error('Invalid response format from crop-yield-prediction function');
+      }
+    } else {
+      // Use mock data in development mode
+      return getMockCropYieldPredictions(stateId);
+    }
+  } catch (err) {
+    console.error('Error getting crop yield predictions:', err);
+    if (config.fallbackToMock) {
+      console.warn('Falling back to mock crop yield data');
+      return getMockCropYieldPredictions(stateId);
+    }
+    throw err;
+  }
+};
+
+// Main function to get drought predictions
+export const getDroughtPredictions = async (stateId: string): Promise<DroughtPrediction[]> => {
+  try {
+    // Check if we have a recent cache
+    const cachedData = cache.droughts.get(stateId);
+    if (cachedData && Date.now() - cachedData.timestamp < config.cacheDuration) {
+      if (config.logApiCalls) console.log('Returning cached drought predictions for', stateId);
+      return cachedData.data;
+    }
+    
+    if (config.useRealModels) {
+      // Call Supabase Edge Function for ML model predictions
+      if (config.logApiCalls) console.log('Fetching drought predictions from ML model for', stateId);
+      
+      const { data, error } = await supabase.functions.invoke('drought-prediction', {
+        body: { stateId }
+      });
+      
+      if (error) {
+        console.error('Error calling drought-prediction function:', error);
+        if (config.fallbackToMock) {
+          console.warn('Falling back to mock drought data');
+          return getMockDroughtPredictions(stateId);
+        }
+        throw error;
+      }
+      
+      if (data && Array.isArray(data)) {
+        // Cache the results
+        cache.droughts.set(stateId, {
+          data: data,
+          timestamp: Date.now()
+        });
+        return data;
+      } else {
+        console.error('Invalid response format from drought-prediction function');
+        if (config.fallbackToMock) {
+          console.warn('Falling back to mock drought data');
+          return getMockDroughtPredictions(stateId);
+        }
+        throw new Error('Invalid response format from drought-prediction function');
+      }
+    } else {
+      // Use mock data in development mode
+      return getMockDroughtPredictions(stateId);
+    }
+  } catch (err) {
+    console.error('Error getting drought predictions:', err);
+    if (config.fallbackToMock) {
+      console.warn('Falling back to mock drought data');
+      return getMockDroughtPredictions(stateId);
+    }
+    throw err;
+  }
+};
+
+// Mock data generator for crop yield predictions (moved to separate function)
+const getMockCropYieldPredictions = (stateId: string): CropYieldPrediction[] => {
   // This would be replaced with actual API calls to ML models
   const predictions: CropYieldPrediction[] = [];
   
@@ -103,8 +240,8 @@ export const getCropYieldPredictions = (stateId: string): CropYieldPrediction[] 
   return predictions;
 };
 
-// Mock data generator for drought predictions
-export const getDroughtPredictions = (stateId: string): DroughtPrediction[] => {
+// Mock data generator for drought predictions  (moved to separate function)
+const getMockDroughtPredictions = (stateId: string): DroughtPrediction[] => {
   // This would be replaced with actual API calls to ML models
   const predictions: DroughtPrediction[] = [];
   

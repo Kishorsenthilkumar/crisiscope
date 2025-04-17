@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Flame, Droplet, SunDim, AlertTriangle, MapPin, Waves, Filter, Cloud, CloudRain, Mail } from 'lucide-react';
+import { Flame, Droplet, SunDim, AlertTriangle, MapPin, Waves, Filter, Cloud, CloudRain, Mail, Loader2 } from 'lucide-react';
 import { DroughtPrediction, getDroughtPredictions } from '../services/predictionService';
 import { EmailAlertModal } from './EmailAlertModal';
 import {
@@ -28,7 +28,9 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
 }) => {
   const [filter, setFilter] = useState<'all' | 'high' | 'extreme'>('all');
   const [sortBy, setSortBy] = useState<'district' | 'risk' | 'probability'>('risk');
-  const [predictions, setPredictions] = useState<DroughtPrediction[]>(() => getDroughtPredictions(stateId));
+  const [predictions, setPredictions] = useState<DroughtPrediction[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [stateName, setStateName] = useState('');
   
@@ -40,6 +42,32 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
       setStateName(state.name);
     }
   }, [stateId]);
+  
+  // Load predictions on component mount or when stateId changes
+  useEffect(() => {
+    loadPredictions();
+  }, [stateId]);
+  
+  // Function to load predictions
+  const loadPredictions = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await getDroughtPredictions(stateId);
+      setPredictions(data);
+    } catch (err) {
+      console.error('Error loading drought predictions:', err);
+      setError('Failed to load predictions. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to load drought prediction data.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filter predictions based on selected severity and district
   const filteredPredictions = predictions
@@ -95,10 +123,10 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
   
   // Function to refresh predictions
   const refreshPredictions = () => {
-    setPredictions(getDroughtPredictions(stateId));
+    loadPredictions();
     toast({
-      title: "Data refreshed",
-      description: "Drought prediction data has been updated"
+      title: "Refreshing data",
+      description: "Getting latest drought prediction data..."
     });
   };
 
@@ -151,8 +179,9 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
                 size="sm" 
                 className="h-8"
                 onClick={refreshPredictions}
+                disabled={isLoading}
               >
-                Refresh
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
               </Button>
             </div>
           </div>
@@ -191,7 +220,25 @@ export const DroughtCrisisPrediction: React.FC<DroughtCrisisPredictionProps> = (
             </div>
           </div>
           
-          {sortedPredictions.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-[350px]">
+              <Loader2 className="h-10 w-10 mb-4 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading drought predictions...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+              <AlertTriangle className="h-10 w-10 mb-2 text-red-500" />
+              <p className="text-red-500">{error}</p>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={refreshPredictions}
+                className="mt-4"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : sortedPredictions.length > 0 ? (
             <ScrollArea className="h-[350px] pr-4">
               <div className="space-y-3">
                 {sortedPredictions.map((prediction, idx) => (
